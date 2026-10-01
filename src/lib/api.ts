@@ -1,4 +1,5 @@
 import { clearSession, getSession, setSession, type Session } from './session';
+import { apiUrl } from './config';
 
 export class ApiError extends Error {
   status: number;
@@ -23,7 +24,7 @@ export function refreshSession(): Promise<boolean> {
 
   refreshing = (async () => {
     try {
-      const res = await fetch('/api/auth/refresh', {
+      const res = await fetch(apiUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: s.refresh_token }),
@@ -49,7 +50,7 @@ export function refreshSession(): Promise<boolean> {
 }
 
 function request(path: string, init: { method?: string; body?: unknown }, token?: string) {
-  return fetch(`http://localhost:3000${path}`, {
+  return fetch(apiUrl(path), {
     method: init.method ?? 'GET',
     headers: {
       ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
