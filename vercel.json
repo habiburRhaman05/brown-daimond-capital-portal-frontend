@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://portal-backend-livid.vercel.app/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://brown-daimond-capital.vercel.app/api/:path*" },
     { "source": "/((?!api/|portal/).*)", "destination": "/index.html" }
   ]
 }
