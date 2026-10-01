@@ -17,7 +17,6 @@ const ADMIN_NAV = [
   { to: '/admin', label: 'Overview', end: true },
   { to: '/admin/clients', label: 'Clients' },
   { to: '/admin/requests', label: 'Change requests' },
-  { to: '/admin/signups', label: 'Signup requests' },
   { to: '/admin/invites', label: 'Invites' },
 ];
 
