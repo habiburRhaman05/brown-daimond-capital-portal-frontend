@@ -9,6 +9,7 @@ import { FieldGroups } from '../../components/FieldGroups';
 import { DesignCard } from '../../components/DesignCard';
 import { RequestList } from '../../components/RequestList';
 import { DecideButtons } from '../../components/DecideButtons';
+import { DownloadSiteButton } from '../../components/DownloadSiteButton';
 import { EditClient } from './EditClient';
 
 type Tab = 'information' | 'design' | 'requests' | 'activity';
@@ -53,6 +54,7 @@ export function ClientDetail() {
         actions={
           <>
             <a className={btnGhost} href={portalUrl(id)}>View portal as client</a>
+            <DownloadSiteButton fields={data.fields} sel={data.sel} />
             <Button variant="ghost" onClick={() => setEditing(true)}>Edit details</Button>
           </>
         }
