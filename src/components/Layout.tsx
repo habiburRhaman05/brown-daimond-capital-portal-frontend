@@ -11,14 +11,15 @@ const CLIENT_NAV = [
   { to: '/dashboard/information', label: 'My information' },
   { to: '/dashboard/website', label: 'My website' },
   { to: '/dashboard/requests', label: 'Change requests' },
+  { to: '/dashboard/account', label: 'Account' },
 ];
 
 const ADMIN_NAV = [
   { to: '/admin', label: 'Overview', end: true },
   { to: '/admin/clients', label: 'Clients' },
   { to: '/admin/requests', label: 'Change requests' },
-  { to: '/admin/signups', label: 'Signup requests' },
   { to: '/admin/invites', label: 'Invites' },
+  { to: '/admin/account', label: 'Account' },
 ];
 
 export function Layout() {
@@ -47,7 +48,9 @@ export function Layout() {
       <header className="sticky top-0 z-40 border-b border-line bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-6">
-            <span className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted">Brown Diamond Capital</span>
+            <NavLink to="/" aria-label="Brown Diamond Capital" className="shrink-0">
+              <img src="/assets/secondary-logo-dark.png" alt="Brown Diamond Capital" width={144} height={32} className="h-8 w-36 object-contain object-left" />
+            </NavLink>
             <nav className="hidden flex-wrap gap-1 md:flex" aria-label="Main">
               {nav.map((n) => (
                 <NavLink key={n.to} to={n.to} end={n.end} className={link}>{n.label}</NavLink>

@@ -24,8 +24,7 @@ export const STATE_LABEL: Record<PortalState, string> = {
 
 export const REQUEST_LABEL: Record<RequestStatus, string> = {
   pending: 'Pending',
-  approved: 'Approved',
-  rejected: 'Rejected',
+  resolved: 'Resolved',
 };
 
 export const PART_LABEL: Record<RequestPart, string> = {
@@ -39,8 +38,8 @@ export const ACTION_LABEL: Record<string, string> = {
   'client.signup': 'Client signed up',
   'portal.submit': 'Client submitted the portal',
   'request.created': 'Change request sent',
-  'request.approved': 'Change request approved',
-  'request.rejected': 'Change request rejected',
+  'request.resolved': 'Change request marked resolved',
+  'request.reopened': 'Change request moved back to pending',
   'admin.edit_details': 'Details edited by admin',
   'admin.reopen': 'Portal reopened',
   'admin.lock': 'Portal locked',

@@ -9,8 +9,7 @@ import { DecideButtons } from '../../components/DecideButtons';
 
 const TABS: { id: RequestStatus | 'all'; label: string }[] = [
   { id: 'pending', label: 'Pending' },
-  { id: 'approved', label: 'Approved' },
-  { id: 'rejected', label: 'Rejected' },
+  { id: 'resolved', label: 'Resolved' },
   { id: 'all', label: 'All' },
 ];
 
@@ -23,7 +22,7 @@ export function AdminRequests() {
 
   return (
     <>
-      <PageHeader title="Change requests" subtitle="Approving reopens the client's portal for 24 hours." />
+      <PageHeader title="Change requests" subtitle="Mark a request resolved once it is dealt with. You can switch it back to pending." />
       <div className="mb-5 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-line">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`-mb-px shrink-0 border-b-2 px-3 py-2 sm:px-4 text-sm font-medium ${tab === t.id ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'}`}>

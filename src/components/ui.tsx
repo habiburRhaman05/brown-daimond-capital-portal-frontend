@@ -161,7 +161,7 @@ export function Badge({ tone, children }: { tone: keyof typeof TONES; children: 
 const STATE_TONE: Record<PortalState, keyof typeof TONES> = { not_started: 'gray', in_progress: 'blue', submitted: 'green', reopened: 'amber' };
 export const StateBadge = ({ state }: { state: PortalState }) => <Badge tone={STATE_TONE[state]}>{STATE_LABEL[state]}</Badge>;
 
-const REQUEST_TONE: Record<RequestStatus, keyof typeof TONES> = { pending: 'amber', approved: 'green', rejected: 'red' };
+const REQUEST_TONE: Record<RequestStatus, keyof typeof TONES> = { pending: 'amber', resolved: 'green' };
 export const RequestBadge = ({ status }: { status: RequestStatus }) => <Badge tone={REQUEST_TONE[status]}>{REQUEST_LABEL[status]}</Badge>;
 
 export function ErrorBox({ error }: { error: unknown }) {

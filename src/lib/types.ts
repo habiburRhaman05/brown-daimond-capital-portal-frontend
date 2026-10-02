@@ -1,6 +1,6 @@
 export type Role = 'admin' | 'client';
 export type PortalState = 'not_started' | 'in_progress' | 'submitted' | 'reopened';
-export type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type RequestStatus = 'pending' | 'resolved';
 export type RequestPart = 'website' | 'team' | 'you' | 'business';
 
 export interface Me {

@@ -101,6 +101,8 @@ const MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Invalid email or password.',
   AUTH_FAILED: 'Something went wrong. Please try again.',
   WEAK_PASSWORD: 'Use at least 8 characters.',
+  WRONG_PASSWORD: 'Your current password is not correct.',
+  SAME_PASSWORD: 'Choose a password you have not used just now.',
   INVALID_EMAIL: 'Enter a valid email address.',
   INVITE_PENDING: 'An invite is already waiting for that email.',
   ALREADY_REGISTERED: 'That person already has an account.',

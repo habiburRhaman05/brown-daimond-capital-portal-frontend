@@ -15,6 +15,7 @@ import { ClientDetail } from './pages/admin/ClientDetail';
 import { AdminRequests } from './pages/admin/AdminRequests';
 import { Invites } from './pages/admin/Invites';
 import { Signups } from './pages/admin/Signups';
+import { Account } from './pages/Account';
 
 function NotFound() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/dashboard/information" element={<Information />} />
         <Route path="/dashboard/website" element={<Website />} />
         <Route path="/dashboard/requests" element={<Requests />} />
+        <Route path="/dashboard/account" element={<Account />} />
       </Route>
 
       {/* Admin area */}
@@ -54,6 +56,7 @@ export default function App() {
         <Route path="/admin/requests" element={<AdminRequests />} />
         <Route path="/admin/signups" element={<Signups />} />
         <Route path="/admin/invites" element={<Invites />} />
+        <Route path="/admin/account" element={<Account />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
