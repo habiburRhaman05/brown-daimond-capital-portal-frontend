@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { api, ApiError, errorMessage } from '../lib/api';
-import { setSession, type Session } from '../lib/session';
+import { clearSession, setSession, type Session } from '../lib/session';
 import { useAuth } from '../auth/AuthProvider';
 import { Button, inputCls, Notice } from '../components/ui';
 import { homeFor } from '../auth/Guards';
@@ -20,6 +20,34 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
 }
 
 type Variant = 'client' | 'admin';
+
+// Loop guard. We send a signed-in user on to the static portal page; if that page sends them
+// straight back, the portal cannot use this session (it is talking to a backend that rejects it).
+// Bouncing again would never end, so the second arrival within seconds signs them out instead.
+const BOUNCE_KEY = 'bdcap-portal-bounce';
+const BOUNCE_WINDOW_MS = 20_000;
+const bouncedRecently = () => {
+  try {
+    const t = Number(sessionStorage.getItem(BOUNCE_KEY));
+    return !!t && Date.now() - t < BOUNCE_WINDOW_MS;
+  } catch {
+    return false;
+  }
+};
+const markBounce = () => {
+  try {
+    sessionStorage.setItem(BOUNCE_KEY, String(Date.now()));
+  } catch {
+    /* storage unavailable */
+  }
+};
+const clearBounce = () => {
+  try {
+    sessionStorage.removeItem(BOUNCE_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+};
 
 const VARIANTS: Record<Variant, { title: string; subtitle: string; footer: React.ReactNode }> = {
   client: {
@@ -63,16 +91,23 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
 
-  if (state.status === 'ready') {
+  const portalRejected = query.get('reason') === 'auth';
+  const stuck = isStaticPortal && (portalRejected || bouncedRecently());
+  useEffect(() => {
+    if (stuck && state.status !== 'signedOut' && state.status !== 'loading') clearSession();
+  }, [stuck, state.status]);
+
+  if (state.status === 'ready' && !stuck) {
     // Enforce the login's role: an admin landing on /client/login goes to /admin, and vice versa.
     const goTo = state.user.role === variant ? dest : homeFor(state.user.role);
     if (isStaticPortal && state.user.role === variant) {
+      markBounce();
       window.location.assign(goTo);
       return null;
     }
     return <Navigate to={goTo} replace />;
   }
-  if (state.status === 'blocked') return <Navigate to={dest} replace />;
+  if (state.status === 'blocked' && !stuck) return <Navigate to={dest} replace />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -93,6 +128,7 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
       return;
     }
     // Keep the spinner up while the app loads the account and redirects.
+    clearBounce();
     if (isStaticPortal) window.location.assign(dest);
     else navigate(dest, { replace: true });
   }
@@ -112,8 +148,9 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
   const v = VARIANTS[variant];
   return (
     <AuthCard title={v.title} subtitle={v.subtitle}>
-      {(justVerified || linkExpired) && (
+      {(justVerified || linkExpired || stuck) && (
         <div className="mb-4">
+          {stuck && <Notice tone="warn">The portal could not use your session, so you were signed out. Please sign in again.</Notice>}
           {justVerified && <Notice tone="ok">Your email is verified. Sign in to continue.</Notice>}
           {linkExpired && <Notice tone="warn">That verification link has expired or was already used. Try signing in; if your email is not verified yet we can send a new link.</Notice>}
         </div>
