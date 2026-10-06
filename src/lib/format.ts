@@ -41,10 +41,17 @@ export const ACTION_LABEL: Record<string, string> = {
   'request.resolved': 'Change request marked resolved',
   'request.reopened': 'Change request moved back to pending',
   'admin.edit_details': 'Details edited by admin',
+  'admin.site_info': 'Site info updated by admin',
   'admin.reopen': 'Portal reopened',
   'admin.lock': 'Portal locked',
+  'signup.approved': 'Signup request approved',
+  'signup.rejected': 'Signup request rejected',
   'invite.sent': 'Invite sent',
+  'invite.link_created': 'Invite link created',
   'invite.revoked': 'Invite revoked',
+  'client_number.added': 'Client number added',
+  'client_number.updated': 'Client number updated',
+  'client_number.deleted': 'Client number removed',
 };
 
 export const portalUrl = (viewAs?: string) => (viewAs ? `/portal/index.html?viewAs=${encodeURIComponent(viewAs)}` : '/portal/index.html');

@@ -11,7 +11,7 @@ import './index.css';
 captureSessionFromUrl();
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 15_000 } },
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true, staleTime: 15_000 } },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

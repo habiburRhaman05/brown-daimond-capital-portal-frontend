@@ -5,16 +5,18 @@ import { clearSession, setSession, type Session } from '../lib/session';
 import { useAuth } from '../auth/AuthProvider';
 import { Button, inputCls, Notice } from '../components/ui';
 import { homeFor } from '../auth/Guards';
+import { Footer } from '../components/Footer';
 
 export function AuthCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-4">
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-4">
       <div className="my-8 w-full max-w-sm rounded-xl border border-line bg-white p-5 sm:p-8">
         <img src="/assets/favicon-dark.png" alt="Brown Diamond Capital" width={76} height={76} className="mx-auto h-[76px] w-[76px]" />
         <h1 className="mt-4 text-center text-xl font-semibold">{title}</h1>
         {subtitle && <p className="mt-2 text-center text-sm text-muted">{subtitle}</p>}
         <div className="mt-6">{children}</div>
       </div>
+      <Footer />
     </div>
   );
 }

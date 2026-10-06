@@ -112,6 +112,8 @@ const MESSAGES: Record<string, string> = {
   ALREADY_LOCKED: 'The portal is already locked.',
   CLIENT_NOT_FOUND: 'Client not found.',
   REQUEST_NOT_FOUND: 'Request not found.',
+  NUMBER_REQUIRED: 'Please enter a client number.',
+  NUMBER_NOT_FOUND: 'Client number not found.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Wait a few minutes and try again.',
   NAME_REQUIRED: 'Please enter your full name.',
   SIGNUP_FAILED: 'We could not submit your request. Please try again.',

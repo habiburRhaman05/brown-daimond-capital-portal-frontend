@@ -34,6 +34,7 @@ export interface Summary {
   pendingRequests: number;
   progress: Progress;
   site: SiteInfo;
+  clientNumbers: string[];
   createdAt: string;
   loadError?: boolean;
 }
@@ -100,6 +101,11 @@ export interface AuditRow {
   created_at: string;
 }
 
+export interface ClientNumber {
+  id: string;
+  number: string;
+}
+
 export interface ClientDetail {
   summary: Summary;
   fields: FieldValues;
@@ -108,6 +114,7 @@ export interface ClientDetail {
   status: Status;
   site: SiteInfo;
   requests: ChangeRequest[];
+  numbers: ClientNumber[];
   audit: AuditRow[];
 }
 

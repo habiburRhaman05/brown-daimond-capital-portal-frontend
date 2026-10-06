@@ -5,6 +5,7 @@ import { AdminLogin, ClientLogin, Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { SetPassword } from './pages/SetPassword';
+import { PrivacyPolicy, TermsOfUse } from './pages/Legal';
 import { Dashboard } from './pages/client/Dashboard';
 import { Information } from './pages/client/Information';
 import { Website } from './pages/client/Website';
@@ -37,6 +38,8 @@ export default function App() {
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/set-password" element={<SetPassword />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfUse />} />
       <Route path="/" element={<HomeRedirect />} />
 
       {/* Client area */}

@@ -1,4 +1,4 @@
-import { FIELD_GROUPS, contactTimes, str, teamRows } from '../lib/fields';
+import { FIELD_GROUPS, WEBSITE_GROUP, contactTimes, str, teamRows } from '../lib/fields';
 import type { FieldValues } from '../lib/types';
 import { Card, KV } from './ui';
 
@@ -50,6 +50,15 @@ export function FieldGroups({ fields }: { fields: FieldValues }) {
             </table>
           </div>
         )}
+      </Card>
+      <Card title={WEBSITE_GROUP.title}>
+        <dl className="divide-y divide-line">
+          {WEBSITE_GROUP.items.map((f) => (
+            <KV key={f.key} label={f.label}>
+              {str(fields[f.key])}
+            </KV>
+          ))}
+        </dl>
       </Card>
     </div>
   );

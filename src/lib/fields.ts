@@ -13,7 +13,6 @@ export const THEMES = [
   'Management Consulting',
   'Leadership Development Consulting',
   'NIL Consulting',
-  'Real Estate Consultancy',
 ];
 
 export const CONTACT_METHODS = ['Email', 'Phone', 'SMS/Text', 'In Person', 'Social Media', 'Zoom'];
@@ -54,15 +53,14 @@ export const FIELD_GROUPS: { title: string; items: FieldDef[] }[] = [
       { key: 'sicField', label: 'SIC code' },
     ],
   },
-  {
-    title: 'Website',
-    items: [
-      { key: 'domainInput', label: 'Domain choice' },
-      { key: 'taglineInput', label: 'Tagline' },
-      { key: 'ctaSel', label: 'Contact button wording' },
-    ],
-  },
 ];
+
+// Rendered after Team (Sprint 2.2 Review, section 4). Tagline and Contact button wording moved
+// to the website design view, since the client chooses them alongside the rest of the design.
+export const WEBSITE_GROUP: { title: string; items: FieldDef[] } = {
+  title: 'Website',
+  items: [{ key: 'domainInput', label: 'Domain choice' }],
+};
 
 export const TIMES = [
   { key: 'contactTimeMorning', label: 'Morning' },

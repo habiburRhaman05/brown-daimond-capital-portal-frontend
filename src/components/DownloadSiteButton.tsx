@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import type { FieldValues } from '../lib/types';
+import type { Design, FieldValues } from '../lib/types';
 import { buildSiteZip, canExport, saveBlob } from '../lib/siteExport';
 import { Button } from './ui';
 
 const MESSAGES: Record<string, string> = {
   ENGINE_UNAVAILABLE: 'The website engine could not be loaded. Refresh the page and try again.',
   ENGINE_TIMEOUT: 'The website engine took too long to load. Refresh the page and try again.',
-  DESIGN_UNAVAILABLE: 'This client’s saved design is not available in the engine (template, theme or palette not found).',
+  DESIGN_UNAVAILABLE: "This client’s saved design is not available in the engine (template, theme or palette not found).",
 };
 
-// Admin only: renders the client's chosen design in this browser and downloads it as a ZIP of
-// three self-contained HTML files.
-export function DownloadSiteButton({ fields, sel, className = '' }: { fields: FieldValues; sel: Record<string, unknown>; className?: string }) {
+export function DownloadSiteButton({ fields, sel, design, submittedOn, className = '' }: {
+  fields: FieldValues; sel: Record<string, unknown>; design: Design; submittedOn?: string; className?: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ export function DownloadSiteButton({ fields, sel, className = '' }: { fields: Fi
     setError('');
     setBusy(true);
     try {
-      const zip = await buildSiteZip(fields, sel, setProgress);
+      const zip = await buildSiteZip(fields, sel, design, submittedOn || '', setProgress);
       saveBlob(zip.blob, zip.filename);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';

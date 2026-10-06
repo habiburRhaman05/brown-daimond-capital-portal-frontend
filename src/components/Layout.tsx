@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Button } from './ui';
+import { Footer } from './Footer';
 
 const link = ({ isActive }: { isActive: boolean }) =>
   `block rounded-md px-3 py-2 text-sm font-medium md:py-1.5 ${isActive ? 'bg-brand/10 text-brand' : 'text-muted hover:text-ink'}`;
@@ -88,6 +89,7 @@ export function Layout() {
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-5 sm:py-8">
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }

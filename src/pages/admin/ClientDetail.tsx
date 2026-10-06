@@ -1,16 +1,76 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, errorMessage } from '../../lib/api';
 import { ACTION_LABEL, fmtDate, fmtDateTime, portalUrl } from '../../lib/format';
-import type { ClientDetail as Detail } from '../../lib/types';
-import { btnGhost, Button, Card, CardSkeleton, Empty, ErrorBox, HeaderSkeleton, KV, Notice, PageHeader, ProgressBar, StateBadge } from '../../components/ui';
+import type { ClientDetail as Detail, ClientNumber } from '../../lib/types';
+import { btnGhost, Button, Card, CardSkeleton, Empty, ErrorBox, HeaderSkeleton, inputCls, KV, Notice, PageHeader, ProgressBar, StateBadge } from '../../components/ui';
 import { FieldGroups } from '../../components/FieldGroups';
 import { DesignCard } from '../../components/DesignCard';
 import { RequestList } from '../../components/RequestList';
 import { DecideButtons } from '../../components/DecideButtons';
 import { DownloadSiteButton } from '../../components/DownloadSiteButton';
 import { EditClient } from './EditClient';
+
+function ClientNumbers({ clientId, numbers }: { clientId: string; numbers: ClientNumber[] }) {
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ['admin'] });
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState('');
+  const [err, setErr] = useState('');
+
+  const addNum = useMutation({
+    mutationFn: () => api(`/api/admin/clients/${clientId}/numbers`, { method: 'POST', body: { number: draft } }),
+    onSuccess: () => { setAdding(false); setDraft(''); setErr(''); refresh(); },
+    onError: (e) => setErr(errorMessage(e)),
+  });
+  const updateNum = useMutation({
+    mutationFn: (id: string) => api(`/api/admin/clients/${clientId}/numbers/${id}`, { method: 'PUT', body: { number: editVal } }),
+    onSuccess: () => { setEditId(null); setEditVal(''); setErr(''); refresh(); },
+    onError: (e) => setErr(errorMessage(e)),
+  });
+  const deleteNum = useMutation({
+    mutationFn: (id: string) => api(`/api/admin/clients/${clientId}/numbers/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { setErr(''); refresh(); },
+    onError: (e) => setErr(errorMessage(e)),
+  });
+
+  return (
+    <div className="mt-2 text-sm">
+      <span className="text-muted">Client #</span>
+      {numbers.length === 0 && !adding && <span className="ml-2 text-muted">—</span>}
+      {numbers.map((n) =>
+        editId === n.id ? (
+          <span key={n.id} className="ml-2 inline-flex items-center gap-1">
+            <input className={`${inputCls} !w-32 !py-1 !text-xs`} value={editVal} onChange={(e) => setEditVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') updateNum.mutate(n.id); if (e.key === 'Escape') setEditId(null); }} autoFocus />
+            <button className="text-xs text-brand hover:underline" onClick={() => updateNum.mutate(n.id)} disabled={updateNum.isPending}>Save</button>
+            <button className="text-xs text-muted hover:underline" onClick={() => setEditId(null)}>Cancel</button>
+          </span>
+        ) : (
+          <span key={n.id} className="ml-2 inline-flex items-center gap-1">
+            <span className="rounded bg-paper px-2 py-0.5">{n.number}</span>
+            <button className="text-xs text-muted hover:text-ink" onClick={() => { setEditId(n.id); setEditVal(n.number); }} title="Edit">✎</button>
+            <button className="text-xs text-muted hover:text-red-600" onClick={() => confirm('Remove this client number?') && deleteNum.mutate(n.id)} title="Remove">×</button>
+          </span>
+        ),
+      )}
+      {adding ? (
+        <span className="ml-2 inline-flex items-center gap-1">
+          <input className={`${inputCls} !w-32 !py-1 !text-xs`} placeholder="e.g. 1234" value={draft} onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addNum.mutate(); if (e.key === 'Escape') setAdding(false); }} autoFocus />
+          <button className="text-xs text-brand hover:underline" onClick={() => addNum.mutate()} disabled={addNum.isPending}>Add</button>
+          <button className="text-xs text-muted hover:underline" onClick={() => { setAdding(false); setDraft(''); }}>Cancel</button>
+        </span>
+      ) : (
+        <button className="ml-2 text-xs text-brand hover:underline" onClick={() => setAdding(true)}>+ Add number</button>
+      )}
+      {err && <span className="ml-2 text-xs text-red-600">{err}</span>}
+    </div>
+  );
+}
 
 type Tab = 'information' | 'design' | 'requests' | 'activity';
 
@@ -50,11 +110,16 @@ export function ClientDetail() {
       <p className="mb-2 text-sm"><Link to="/admin/clients" className="text-muted hover:text-ink">← All clients</Link></p>
       <PageHeader
         title={s.name}
-        subtitle={<span className="inline-flex flex-wrap items-center gap-2">{s.email}{s.businessName && <> · {s.businessName}</>} <StateBadge state={s.state} /></span>}
+        subtitle={
+          <div>
+            <span className="inline-flex flex-wrap items-center gap-2">{s.email}{s.businessName && <> · {s.businessName}</>} <StateBadge state={s.state} /></span>
+            <ClientNumbers clientId={id} numbers={data.numbers} />
+          </div>
+        }
         actions={
           <>
             <a className={btnGhost} href={portalUrl(id)}>View portal as client</a>
-            <DownloadSiteButton fields={data.fields} sel={data.sel} />
+            <DownloadSiteButton fields={data.fields} sel={data.sel} design={data.design} submittedOn={s.completedOn} />
             <Button variant="ghost" onClick={() => setEditing(true)}>Edit details</Button>
           </>
         }
@@ -123,7 +188,6 @@ export function ClientDetail() {
           <DesignCard design={data.design} />
           <Card title="Site">
             <dl className="divide-y divide-line">
-              <KV label="Client number">{data.site.clientNumber}</KV>
               <KV label="Preview">{data.site.previewUrl && <a className="text-brand hover:underline" href={data.site.previewUrl} target="_blank" rel="noreferrer">{data.site.previewUrl}</a>}</KV>
               <KV label="Live site">{data.site.url && <a className="text-brand hover:underline" href={data.site.url} target="_blank" rel="noreferrer">{data.site.url}</a>}</KV>
               <KV label="Published on">{fmtDate(data.site.deployedOn)}</KV>

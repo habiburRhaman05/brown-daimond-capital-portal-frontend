@@ -18,7 +18,7 @@ export function Clients() {
     const needle = q.trim().toLowerCase();
     return (data?.clients ?? []).filter((c) => {
       if (filter !== 'all' && c.state !== filter) return false;
-      return !needle || [c.name, c.email, c.businessName].some((v) => v.toLowerCase().includes(needle));
+      return !needle || [c.name, c.email, c.businessName, ...(c.clientNumbers || [])].some((v) => v.toLowerCase().includes(needle));
     });
   }, [data, q, filter]);
 
@@ -65,6 +65,7 @@ export function Clients() {
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div><dt className="text-muted">Business</dt><dd className="truncate">{c.businessName || '—'}</dd></div>
+                  <div><dt className="text-muted">Client #</dt><dd className="truncate">{c.clientNumbers?.length ? c.clientNumbers.join(', ') : '—'}</dd></div>
                   <div><dt className="text-muted">Design</dt><dd className="truncate capitalize">{c.template ? `${c.template} · ${c.palette}` : '—'}</dd></div>
                   <div><dt className="text-muted">Submitted</dt><dd>{fmtDate(c.completedOn) || '—'}</dd></div>
                   <div><dt className="text-muted">Requests</dt><dd>{c.pendingRequests > 0 ? <Badge tone="amber">{c.pendingRequests} pending</Badge> : '—'}</dd></div>
@@ -80,6 +81,7 @@ export function Clients() {
               <tr>
                 <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3">Business</th>
+                <th className="px-4 py-3">Client #</th>
                 <th className="px-4 py-3">Design</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Requests</th>
@@ -94,6 +96,7 @@ export function Clients() {
                     <div className="text-xs text-muted">{c.email}</div>
                   </td>
                   <td className="px-4 py-3">{c.businessName || <span className="text-muted">—</span>}</td>
+                  <td className="px-4 py-3">{c.clientNumbers?.length ? c.clientNumbers.join(', ') : <span className="text-muted">—</span>}</td>
                   <td className="px-4 py-3 capitalize">{c.template ? `${c.template} · ${c.palette}` : <span className="text-muted">—</span>}</td>
                   <td className="px-4 py-3">
                     <StateBadge state={c.state} />

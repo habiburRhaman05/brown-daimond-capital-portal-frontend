@@ -11,12 +11,21 @@ const LABEL = { sent: 'Waiting', accepted: 'Signed up', revoked: 'Revoked' } as 
 export function Invites() {
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
+  const [linkEmail, setLinkEmail] = useState('');
+  const [copied, setCopied] = useState(false);
   const { data, error, isLoading } = useQuery({ queryKey: ['admin', 'invites'], queryFn: () => api<{ invites: Invite[] }>('/api/admin/invites') });
 
   const send = useMutation({
     mutationFn: () => api('/api/admin/invites', { method: 'POST', body: { email } }),
     onSuccess: () => {
       setEmail('');
+      qc.invalidateQueries({ queryKey: ['admin', 'invites'] });
+    },
+  });
+  const createLink = useMutation({
+    mutationFn: () => api<{ link: string }>('/api/admin/invites/create-link', { method: 'POST', body: { email: linkEmail } }),
+    onSuccess: () => {
+      setCopied(false);
       qc.invalidateQueries({ queryKey: ['admin', 'invites'] });
     },
   });
@@ -30,6 +39,21 @@ export function Invites() {
     if (email.trim()) send.mutate();
   }
 
+  function submitLink(e: FormEvent) {
+    e.preventDefault();
+    if (linkEmail.trim()) createLink.mutate();
+  }
+
+  async function copyLink() {
+    if (!createLink.data?.link) return;
+    try {
+      await navigator.clipboard.writeText(createLink.data.link);
+      setCopied(true);
+    } catch {
+      /* clipboard unavailable; the field below is selectable */
+    }
+  }
+
   return (
     <>
       <PageHeader title="Invites" subtitle="Clients cannot sign themselves up. Send a signup link to the email they will use." />
@@ -41,6 +65,18 @@ export function Invites() {
         </form>
         {send.error && <div className="mt-3"><ErrorBox error={send.error} /></div>}
         {send.isSuccess && <div className="mt-3"><Notice tone="ok">Invite sent. They will get an email with a link to choose a password.</Notice></div>}
+
+        <form onSubmit={submitLink} className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+          <input className={`${inputCls} sm:max-w-sm`} type="email" required placeholder="client@example.com" value={linkEmail} onChange={(e) => setLinkEmail(e.target.value)} />
+          <Button type="submit" variant="ghost" loading={createLink.isPending} loadingText="Creating…">Create link</Button>
+        </form>
+        {createLink.error && <div className="mt-3"><ErrorBox error={createLink.error} /></div>}
+        {createLink.isSuccess && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input className={`${inputCls} flex-1`} readOnly value={createLink.data.link} onFocus={(e) => e.currentTarget.select()} />
+            <Button type="button" variant="ghost" onClick={copyLink}>{copied ? 'Copied' : 'Copy'}</Button>
+          </div>
+        )}
       </Card>
 
       {isLoading ? (
