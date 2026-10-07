@@ -89,21 +89,15 @@ function decodeJwtUser(token: string): SessionUser | null {
   }
 }
 
-// Invite and password-reset emails land on /set-password with the tokens in the URL fragment
-// (Supabase's implicit flow). supabase-js used to do this for us; now we do it ourselves.
+// Invite, password-reset and email-verification links all land with the tokens in the URL
+// fragment and are picked up here, once, at app bootstrap.
 export function captureSessionFromUrl(): boolean {
   const raw = window.location.hash.replace(/^#/, '');
   if (!raw) return false;
   const params = new URLSearchParams(raw);
 
-  // The email-verification link comes back here too. Verifying is not signing in: drop the
-  // tokens, send the person to the login screen and let them sign in with their password.
   if (params.get('error') || params.get('error_code')) {
     history.replaceState(null, '', '/client/login?verify=expired');
-    return false;
-  }
-  if (params.get('type') === 'signup') {
-    history.replaceState(null, '', '/client/login?verified=1');
     return false;
   }
 
@@ -120,6 +114,14 @@ export function captureSessionFromUrl(): boolean {
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
     user: user ?? { id: '', email: '' },
   });
+
+  // A fresh email-verification grant is good for this one page load only: EmailVerified
+  // reads (and clears) this flag to decide whether to offer the "go to my profile"
+  // shortcut. A later refresh or replay of the same link never sets it again, so the
+  // shortcut cannot be resurrected by anyone who gets hold of a stale copy of the link.
+  if (params.get('type') === 'verify') {
+    try { sessionStorage.setItem('bdcap-fresh-verify', '1'); } catch { /* storage unavailable */ }
+  }
 
   // Drop the tokens from the address bar so a refresh or a screenshot does not leak them.
   history.replaceState(null, '', window.location.pathname + window.location.search);
