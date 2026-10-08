@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, errorMessage } from '../lib/api';
 import type { ChangeRequest } from '../lib/types';
+import { useToast } from './Toast';
 import { Button, ErrorBox, inputCls } from './ui';
 
 // A change request is either Pending or Resolved, and our team can switch it either way.
 export function DecideButtons({ request }: { request: ChangeRequest }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const resolving = request.status === 'pending';
@@ -21,7 +23,9 @@ export function DecideButtons({ request }: { request: ChangeRequest }) {
       setOpen(false);
       setNote('');
       qc.invalidateQueries({ queryKey: ['admin'] });
+      toast.success(resolving ? 'Marked resolved.' : 'Moved back to pending.');
     },
+    onError: (err) => toast.error(errorMessage(err)),
   });
 
   if (resolving && !open) {
@@ -46,7 +50,7 @@ export function DecideButtons({ request }: { request: ChangeRequest }) {
       {toggle.error && <ErrorBox error={toggle.error} />}
       <div className="flex flex-wrap gap-2">
         <Button loading={toggle.isPending} loadingText="Saving…" onClick={() => toggle.mutate()}>Confirm resolved</Button>
-        <button type="button" className="rounded-lg px-3 py-2 text-sm text-muted hover:text-ink disabled:opacity-50" disabled={toggle.isPending} onClick={() => setOpen(false)}>Cancel</button>
+        <button type="button" className="cursor-pointer rounded-lg px-3 py-2 text-sm text-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50" disabled={toggle.isPending} onClick={() => setOpen(false)}>Cancel</button>
       </div>
     </div>
   );

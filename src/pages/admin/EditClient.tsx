@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, errorMessage } from '../../lib/api';
 import { FIELD_GROUPS, TIMES, str } from '../../lib/fields';
 import type { ClientDetail, FieldValues } from '../../lib/types';
+import { useToast } from '../../components/Toast';
 import { Button, ErrorBox, inputCls } from '../../components/ui';
 
 const TEMPLATES = ['editorial', 'split', 'sidebar', 'centered'];
@@ -34,6 +35,7 @@ function changedPayload(initial: FieldValues, current: FieldValues): FieldValues
 
 export function EditClient({ id, detail, onClose }: { id: string; detail: ClientDetail; onClose: () => void }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const [fields, setFields] = useState<FieldValues>({ ...detail.fields });
   const [design, setDesign] = useState({
     tpl: str(detail.sel.tpl),
@@ -55,8 +57,10 @@ export function EditClient({ id, detail, onClose }: { id: string; detail: Client
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin'] });
+      toast.success('Client details saved.');
       onClose();
     },
+    onError: (e) => toast.error(errorMessage(e)),
   });
 
   const set = (k: string, v: string | boolean) => setFields((f) => ({ ...f, [k]: v }));

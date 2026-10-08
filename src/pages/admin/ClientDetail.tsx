@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../../lib/api';
 import { ACTION_LABEL, fmtDate, fmtDateTime, portalUrl } from '../../lib/format';
 import type { ClientDetail as Detail, ClientNumber } from '../../lib/types';
-import { btnGhost, Button, Card, CardSkeleton, Empty, ErrorBox, HeaderSkeleton, inputCls, KV, Notice, PageHeader, ProgressBar, StateBadge } from '../../components/ui';
+import { useToast } from '../../components/Toast';
+import { btnGhost, Button, Card, CardSkeleton, Empty, ErrorState, HeaderSkeleton, inputCls, KV, Notice, PageHeader, ProgressBar, StateBadge } from '../../components/ui';
 import { FieldGroups } from '../../components/FieldGroups';
 import { DesignCard } from '../../components/DesignCard';
 import { RequestList } from '../../components/RequestList';
@@ -14,6 +15,7 @@ import { EditClient } from './EditClient';
 
 function ClientNumbers({ clientId, numbers }: { clientId: string; numbers: ClientNumber[] }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin'] });
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -23,18 +25,18 @@ function ClientNumbers({ clientId, numbers }: { clientId: string; numbers: Clien
 
   const addNum = useMutation({
     mutationFn: () => api(`/api/admin/clients/${clientId}/numbers`, { method: 'POST', body: { number: draft } }),
-    onSuccess: () => { setAdding(false); setDraft(''); setErr(''); refresh(); },
-    onError: (e) => setErr(errorMessage(e)),
+    onSuccess: () => { setAdding(false); setDraft(''); setErr(''); refresh(); toast.success('Client number added.'); },
+    onError: (e) => { setErr(errorMessage(e)); toast.error(errorMessage(e)); },
   });
   const updateNum = useMutation({
     mutationFn: (id: string) => api(`/api/admin/clients/${clientId}/numbers/${id}`, { method: 'PUT', body: { number: editVal } }),
-    onSuccess: () => { setEditId(null); setEditVal(''); setErr(''); refresh(); },
-    onError: (e) => setErr(errorMessage(e)),
+    onSuccess: () => { setEditId(null); setEditVal(''); setErr(''); refresh(); toast.success('Client number updated.'); },
+    onError: (e) => { setErr(errorMessage(e)); toast.error(errorMessage(e)); },
   });
   const deleteNum = useMutation({
     mutationFn: (id: string) => api(`/api/admin/clients/${clientId}/numbers/${id}`, { method: 'DELETE' }),
-    onSuccess: () => { setErr(''); refresh(); },
-    onError: (e) => setErr(errorMessage(e)),
+    onSuccess: () => { setErr(''); refresh(); toast.success('Client number removed.'); },
+    onError: (e) => { setErr(errorMessage(e)); toast.error(errorMessage(e)); },
   });
 
   return (
@@ -46,14 +48,14 @@ function ClientNumbers({ clientId, numbers }: { clientId: string; numbers: Clien
           <span key={n.id} className="ml-2 inline-flex items-center gap-1">
             <input className={`${inputCls} !w-32 !py-1 !text-xs`} value={editVal} onChange={(e) => setEditVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') updateNum.mutate(n.id); if (e.key === 'Escape') setEditId(null); }} autoFocus />
-            <button className="text-xs text-brand hover:underline" onClick={() => updateNum.mutate(n.id)} disabled={updateNum.isPending}>Save</button>
-            <button className="text-xs text-muted hover:underline" onClick={() => setEditId(null)}>Cancel</button>
+            <button className="cursor-pointer text-xs font-medium text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-50" onClick={() => updateNum.mutate(n.id)} disabled={updateNum.isPending}>Save</button>
+            <button className="cursor-pointer text-xs text-muted hover:underline" onClick={() => setEditId(null)}>Cancel</button>
           </span>
         ) : (
           <span key={n.id} className="ml-2 inline-flex items-center gap-1">
             <span className="rounded bg-paper px-2 py-0.5">{n.number}</span>
-            <button className="text-xs text-muted hover:text-ink" onClick={() => { setEditId(n.id); setEditVal(n.number); }} title="Edit">✎</button>
-            <button className="text-xs text-muted hover:text-red-600" onClick={() => confirm('Remove this client number?') && deleteNum.mutate(n.id)} title="Remove">×</button>
+            <button className="cursor-pointer text-xs text-muted hover:text-ink" onClick={() => { setEditId(n.id); setEditVal(n.number); }} title="Edit" aria-label={`Edit client number ${n.number}`}>✎</button>
+            <button className="cursor-pointer text-xs text-muted hover:text-red-600" onClick={() => confirm('Remove this client number?') && deleteNum.mutate(n.id)} title="Remove" aria-label={`Remove client number ${n.number}`}>×</button>
           </span>
         ),
       )}
@@ -61,11 +63,11 @@ function ClientNumbers({ clientId, numbers }: { clientId: string; numbers: Clien
         <span className="ml-2 inline-flex items-center gap-1">
           <input className={`${inputCls} !w-32 !py-1 !text-xs`} placeholder="e.g. 1234" value={draft} onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') addNum.mutate(); if (e.key === 'Escape') setAdding(false); }} autoFocus />
-          <button className="text-xs text-brand hover:underline" onClick={() => addNum.mutate()} disabled={addNum.isPending}>Add</button>
-          <button className="text-xs text-muted hover:underline" onClick={() => { setAdding(false); setDraft(''); }}>Cancel</button>
+          <button className="cursor-pointer text-xs font-medium text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-50" onClick={() => addNum.mutate()} disabled={addNum.isPending}>Add</button>
+          <button className="cursor-pointer text-xs text-muted hover:underline" onClick={() => { setAdding(false); setDraft(''); }}>Cancel</button>
         </span>
       ) : (
-        <button className="ml-2 text-xs text-brand hover:underline" onClick={() => setAdding(true)}>+ Add number</button>
+        <button className="ml-2 cursor-pointer text-xs font-medium text-brand hover:underline" onClick={() => setAdding(true)}>+ Add number</button>
       )}
       {err && <span className="ml-2 text-xs text-red-600">{err}</span>}
     </div>
@@ -77,14 +79,23 @@ type Tab = 'information' | 'design' | 'requests' | 'activity';
 export function ClientDetail() {
   const { id = '' } = useParams();
   const qc = useQueryClient();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>('information');
   const [editing, setEditing] = useState(false);
   const [hours, setHours] = useState(24);
 
-  const { data, error, isLoading } = useQuery({ queryKey: ['admin', 'client', id], queryFn: () => api<Detail>(`/api/admin/clients/${id}`) });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['admin', 'client', id], queryFn: () => api<Detail>(`/api/admin/clients/${id}`) });
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin'] });
-  const reopen = useMutation({ mutationFn: () => api(`/api/admin/clients/${id}/reopen`, { method: 'POST', body: { hours } }), onSuccess: refresh });
-  const lock = useMutation({ mutationFn: () => api(`/api/admin/clients/${id}/lock`, { method: 'POST' }), onSuccess: refresh });
+  const reopen = useMutation({
+    mutationFn: () => api(`/api/admin/clients/${id}/reopen`, { method: 'POST', body: { hours } }),
+    onSuccess: () => { refresh(); toast.success('Portal reopened.'); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const lock = useMutation({
+    mutationFn: () => api(`/api/admin/clients/${id}/lock`, { method: 'POST' }),
+    onSuccess: () => { refresh(); toast.success('Portal locked.'); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
 
   if (isLoading) {
     return (
@@ -94,7 +105,7 @@ export function ClientDetail() {
       </div>
     );
   }
-  if (error || !data) return <ErrorBox error={error} />;
+  if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const { summary: s } = data;
   const pending = data.requests.filter((r) => r.status === 'pending').length;
@@ -160,12 +171,11 @@ export function ClientDetail() {
             </div>
           </Notice>
         )}
-        {(reopen.error || lock.error) && <ErrorBox error={reopen.error || lock.error} />}
       </div>
 
       <div className="mb-5 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-line">
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`-mb-px shrink-0 border-b-2 px-3 py-2 sm:px-4 text-sm font-medium ${tab === t.id ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'}`}>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`-mb-px shrink-0 cursor-pointer border-b-2 px-3 py-2 sm:px-4 text-sm font-medium ${tab === t.id ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'}`}>
             {t.label}
           </button>
         ))}

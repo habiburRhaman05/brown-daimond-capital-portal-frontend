@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Design, FieldValues } from '../lib/types';
 import { buildSiteZip, canExport, saveBlob } from '../lib/siteExport';
+import { useToast } from './Toast';
 import { Button } from './ui';
 
 const MESSAGES: Record<string, string> = {
@@ -12,6 +13,7 @@ const MESSAGES: Record<string, string> = {
 export function DownloadSiteButton({ fields, sel, design, submittedOn, className = '' }: {
   fields: FieldValues; sel: Record<string, unknown>; design: Design; submittedOn?: string; className?: string;
 }) {
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -23,9 +25,12 @@ export function DownloadSiteButton({ fields, sel, design, submittedOn, className
     try {
       const zip = await buildSiteZip(fields, sel, design, submittedOn || '', setProgress);
       saveBlob(zip.blob, zip.filename);
+      toast.success('Download ready — check your browser’s downloads.');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
-      setError(MESSAGES[msg] ?? (msg && !/^[A-Z_]+$/.test(msg) ? msg : 'Could not build the ZIP. Please try again.'));
+      const friendly = MESSAGES[msg] ?? (msg && !/^[A-Z_]+$/.test(msg) ? msg : 'Could not build the ZIP. Please try again.');
+      setError(friendly);
+      toast.error(friendly);
     } finally {
       setBusy(false);
       setProgress('');

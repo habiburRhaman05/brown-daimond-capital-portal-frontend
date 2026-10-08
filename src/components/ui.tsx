@@ -4,11 +4,11 @@ import type { PortalState, RequestStatus } from '../lib/types';
 import { errorMessage } from '../lib/api';
 
 export const btnPrimary =
-  'inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex cursor-pointer items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50';
 export const btnGhost =
-  'inline-flex items-center justify-center rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex cursor-pointer items-center justify-center rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50';
 export const btnDanger =
-  'inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50';
 export const inputCls =
   'w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand';
 
@@ -168,13 +168,51 @@ export function ErrorBox({ error }: { error: unknown }) {
   return <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{errorMessage(error)}</div>;
 }
 
+// For a page or list that failed to load entirely (not a form field error): an icon, a plain
+// explanation and a Try again action, instead of a bare red line nobody notices below the fold.
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-white px-6 py-14 text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v4M12 16h.01" />
+        </svg>
+      </div>
+      <p className="text-sm font-semibold text-ink">Something went wrong</p>
+      <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">{errorMessage(error)}</p>
+      {onRetry && (
+        <Button variant="ghost" className="mt-5" onClick={onRetry}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M23 4v6h-6M1 20v-6h6" />
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+          </svg>
+          Try again
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function Notice({ tone = 'info', children }: { tone?: 'info' | 'warn' | 'ok'; children: ReactNode }) {
   const cls = { info: 'border-blue-200 bg-blue-50 text-blue-900', warn: 'border-amber-200 bg-amber-50 text-amber-900', ok: 'border-green-200 bg-green-50 text-green-900' }[tone];
   return <div className={`rounded-lg border px-4 py-3 text-sm ${cls}`}>{children}</div>;
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg border border-dashed border-line px-4 py-8 text-center text-sm text-muted">{children}</p>;
+// Plain mode (just children) keeps the old compact text block. Passing an icon/title/action
+// switches to the richer empty-state card used for a list with nothing in it yet.
+export function Empty({ icon, title, action, children }: { icon?: ReactNode; title?: string; action?: ReactNode; children?: ReactNode }) {
+  if (!icon && !title && !action) {
+    return <p className="rounded-lg border border-dashed border-line px-4 py-8 text-center text-sm text-muted">{children}</p>;
+  }
+  return (
+    <div className="rounded-xl border border-dashed border-line bg-white px-6 py-14 text-center">
+      {icon && <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-paper">{icon}</div>}
+      {title && <p className="text-sm font-semibold text-ink">{title}</p>}
+      {children && <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">{children}</p>}
+      {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
 }
 
 export function ProgressBar({ label, filled, total }: { label: string; filled: number; total: number }) {

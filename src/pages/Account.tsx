@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { setSession, type Session } from '../lib/session';
 import { useAuth } from '../auth/AuthProvider';
+import { useToast } from '../components/Toast';
 import { Button, Card, inputCls, Notice, PageHeader } from '../components/ui';
 
 // Same page for admins and clients: change your own password while signed in.
 export function Account() {
   const { state } = useAuth();
+  const toast = useToast();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -34,8 +36,11 @@ export function Account() {
       setNext('');
       setConfirm('');
       setDone(true);
+      toast.success('Password changed.');
     } catch (err) {
-      setError(errorMessage(err));
+      const msg = errorMessage(err);
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, errorMessage } from '../../lib/api';
 import { fmtDateTime } from '../../lib/format';
-import { Badge, Button, Card, Empty, ErrorBox, inputCls, ListSkeleton, PageHeader } from '../../components/ui';
+import { useToast } from '../../components/Toast';
+import { Badge, Button, Card, Empty, ErrorState, inputCls, ListSkeleton, PageHeader } from '../../components/ui';
 
 interface SignupRequest {
   id: string;
@@ -22,9 +23,10 @@ const LABEL = { pending: 'Waiting', approved: 'Approved', rejected: 'Rejected' }
 
 export function Signups() {
   const qc = useQueryClient();
+  const toast = useToast();
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const qs = filter === 'pending' ? '?status=pending' : '';
-  const { data, error, isLoading } = useQuery({
+  const { data, error, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'signup-requests', filter],
     queryFn: () => api<{ requests: SignupRequest[] }>(`/api/admin/signup-requests${qs}`),
   });
@@ -32,7 +34,11 @@ export function Signups() {
   const decide = useMutation({
     mutationFn: ({ id, action, note }: { id: string; action: 'approve' | 'reject'; note: string }) =>
       api(`/api/admin/signup-requests/${id}/${action}`, { method: 'POST', body: { note } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'signup-requests'] }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'signup-requests'] });
+      toast.success(vars.action === 'approve' ? 'Approved. An invite email is on its way.' : 'Request rejected.');
+    },
+    onError: (err) => toast.error(errorMessage(err)),
   });
 
   return (
@@ -51,7 +57,7 @@ export function Signups() {
       {isLoading ? (
         <ListSkeleton />
       ) : error || !data ? (
-        <ErrorBox error={error} />
+        <ErrorState error={error} onRetry={refetch} />
       ) : data.requests.length === 0 ? (
         <Empty>{filter === 'pending' ? 'No pending requests. Nice work.' : 'No signup requests yet.'}</Empty>
       ) : (
@@ -59,7 +65,6 @@ export function Signups() {
           {data.requests.map((r) => (
             <SignupCard key={r.id} r={r} decide={decide} />
           ))}
-          {decide.error && <ErrorBox error={decide.error} />}
         </div>
       )}
     </>

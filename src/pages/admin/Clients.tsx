@@ -4,13 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { fmtDate, STATE_LABEL } from '../../lib/format';
 import type { PortalState, Summary } from '../../lib/types';
-import { Badge, btnPrimary, Empty, ErrorBox, HeaderSkeleton, inputCls, PageHeader, Skeleton, StateBadge, TableSkeleton } from '../../components/ui';
+import { Badge, btnPrimary, Empty, ErrorState, HeaderSkeleton, inputCls, PageHeader, Skeleton, StateBadge, TableSkeleton } from '../../components/ui';
 
 const FILTERS: ('all' | PortalState)[] = ['all', 'submitted', 'reopened', 'in_progress', 'not_started'];
 
 export function Clients() {
   const navigate = useNavigate();
-  const { data, error, isLoading } = useQuery({ queryKey: ['admin', 'clients'], queryFn: () => api<{ clients: Summary[] }>('/api/admin/clients') });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['admin', 'clients'], queryFn: () => api<{ clients: Summary[] }>('/api/admin/clients') });
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
 
@@ -31,7 +31,7 @@ export function Clients() {
       </div>
     );
   }
-  if (error || !data) return <ErrorBox error={error} />;
+  if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
     <>
@@ -41,7 +41,7 @@ export function Clients() {
         <input className={`${inputCls} sm:max-w-xs`} placeholder="Search name, email or business" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
           {FILTERS.map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${filter === f ? 'bg-ink text-white' : 'bg-white text-muted ring-1 ring-line hover:text-ink'}`}>
+            <button key={f} onClick={() => setFilter(f)} className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold ${filter === f ? 'bg-ink text-white' : 'bg-white text-muted ring-1 ring-line hover:text-ink'}`}>
               {f === 'all' ? 'All' : STATE_LABEL[f]}
             </button>
           ))}
@@ -49,7 +49,21 @@ export function Clients() {
       </div>
 
       {rows.length === 0 ? (
-        <Empty>{data.clients.length === 0 ? 'No clients yet. Send an invite to get started.' : 'No clients match.'}</Empty>
+        data.clients.length === 0 ? (
+          <Empty
+            icon={
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-muted" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+              </svg>
+            }
+            title="No clients yet"
+            action={<Link className={btnPrimary} to="/admin/invites">Invite a client</Link>}
+          >
+            Send a signup link and they will show up here once they create an account.
+          </Empty>
+        ) : (
+          <Empty>No clients match your search or filter.</Empty>
+        )
       ) : (
         <>
         <ul className="space-y-3 md:hidden">

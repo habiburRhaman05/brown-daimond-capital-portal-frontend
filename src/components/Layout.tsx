@@ -89,7 +89,7 @@ export function Layout() {
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
                 onClick={() => setProfileMenuOpen((o) => !o)}
-                className="inline-flex items-center gap-2 rounded-full border border-line bg-paper p-1.5 text-left shadow-sm transition hover:bg-gray-50"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-paper p-1.5 text-left shadow-sm transition hover:bg-gray-50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-sm font-semibold text-brand">{initials}</span>
                 <span className="hidden pr-1 text-xs font-medium text-muted sm:inline">Account</span>
@@ -122,7 +122,7 @@ export function Layout() {
 
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line md:hidden"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-line md:hidden"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}

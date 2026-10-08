@@ -1,37 +1,47 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, errorMessage } from '../../lib/api';
 import { fmtDateTime } from '../../lib/format';
 import type { Invite } from '../../lib/types';
-import { Badge, Button, Card, Empty, ErrorBox, inputCls, Notice, PageHeader, TableSkeleton } from '../../components/ui';
+import { useToast } from '../../components/Toast';
+import { Badge, Button, Card, Empty, ErrorBox, ErrorState, inputCls, Notice, PageHeader, TableSkeleton } from '../../components/ui';
 
 const TONE = { sent: 'amber', accepted: 'green', revoked: 'gray' } as const;
 const LABEL = { sent: 'Waiting', accepted: 'Signed up', revoked: 'Revoked' } as const;
 
 export function Invites() {
   const qc = useQueryClient();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [linkEmail, setLinkEmail] = useState('');
   const [copied, setCopied] = useState(false);
-  const { data, error, isLoading } = useQuery({ queryKey: ['admin', 'invites'], queryFn: () => api<{ invites: Invite[] }>('/api/admin/invites') });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['admin', 'invites'], queryFn: () => api<{ invites: Invite[] }>('/api/admin/invites') });
 
   const send = useMutation({
     mutationFn: () => api('/api/admin/invites', { method: 'POST', body: { email } }),
     onSuccess: () => {
       setEmail('');
       qc.invalidateQueries({ queryKey: ['admin', 'invites'] });
+      toast.success('Invite sent.');
     },
+    onError: (err) => toast.error(errorMessage(err)),
   });
   const createLink = useMutation({
     mutationFn: () => api<{ link: string }>('/api/admin/invites/create-link', { method: 'POST', body: { email: linkEmail } }),
     onSuccess: () => {
       setCopied(false);
       qc.invalidateQueries({ queryKey: ['admin', 'invites'] });
+      toast.success('Link created.');
     },
+    onError: (err) => toast.error(errorMessage(err)),
   });
   const revoke = useMutation({
     mutationFn: (id: string) => api(`/api/admin/invites/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invites'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'invites'] });
+      toast.success('Invite revoked.');
+    },
+    onError: (err) => toast.error(errorMessage(err)),
   });
 
   function submit(e: FormEvent) {
@@ -82,7 +92,7 @@ export function Invites() {
       {isLoading ? (
         <TableSkeleton rows={4} />
       ) : error || !data ? (
-        <ErrorBox error={error} />
+        <ErrorState error={error} onRetry={refetch} />
       ) : data.invites.length === 0 ? (
         <Empty>No invites yet.</Empty>
       ) : (

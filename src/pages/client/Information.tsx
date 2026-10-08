@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { portalUrl } from '../../lib/format';
 import type { Details } from '../../lib/types';
-import { btnPrimary, CardSkeleton, ErrorBox, HeaderSkeleton, PageHeader } from '../../components/ui';
+import { btnPrimary, CardSkeleton, ErrorState, HeaderSkeleton, PageHeader } from '../../components/ui';
 import { FieldGroups } from '../../components/FieldGroups';
 
 export function Information() {
-  const { data, error, isLoading } = useQuery({ queryKey: ['client', 'details'], queryFn: () => api<Details>('/api/client/details') });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['client', 'details'], queryFn: () => api<Details>('/api/client/details') });
   if (isLoading) {
     return (
       <div role="status" aria-label="Loading">
@@ -15,7 +15,7 @@ export function Information() {
       </div>
     );
   }
-  if (error || !data) return <ErrorBox error={error} />;
+  if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const locked = !!data.status.lockedOn;
   return (

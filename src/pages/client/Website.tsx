@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { fmtDate, portalUrl } from '../../lib/format';
 import type { Details } from '../../lib/types';
-import { btnPrimary, Card, CardSkeleton, ErrorBox, HeaderSkeleton, KV, PageHeader } from '../../components/ui';
+import { btnPrimary, Card, CardSkeleton, ErrorState, HeaderSkeleton, KV, PageHeader } from '../../components/ui';
 import { DesignCard } from '../../components/DesignCard';
 
 export function Website() {
-  const { data, error, isLoading } = useQuery({ queryKey: ['client', 'details'], queryFn: () => api<Details>('/api/client/details') });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['client', 'details'], queryFn: () => api<Details>('/api/client/details') });
   if (isLoading) {
     return (
       <div role="status" aria-label="Loading">
@@ -15,7 +15,7 @@ export function Website() {
       </div>
     );
   }
-  if (error || !data) return <ErrorBox error={error} />;
+  if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const { site } = data;
   return (

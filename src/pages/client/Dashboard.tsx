@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { fmtDate, fmtDateTime, portalUrl } from '../../lib/format';
 import type { Overview, PortalState } from '../../lib/types';
-import { btnGhost, btnPrimary, Card, ErrorBox, Notice, PageHeader, PageSkeleton, ProgressBar, StateBadge } from '../../components/ui';
+import { btnGhost, btnPrimary, Card, ErrorState, Notice, PageHeader, PageSkeleton, ProgressBar, StateBadge } from '../../components/ui';
 
 const CTA: Record<PortalState, string> = {
   not_started: 'Start your portal',
@@ -13,9 +13,9 @@ const CTA: Record<PortalState, string> = {
 };
 
 export function Dashboard() {
-  const { data, error, isLoading } = useQuery({ queryKey: ['client', 'overview'], queryFn: () => api<Overview>('/api/client/overview') });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['client', 'overview'], queryFn: () => api<Overview>('/api/client/overview') });
   if (isLoading) return <PageSkeleton cards={3} />;
-  if (error || !data) return <ErrorBox error={error} />;
+  if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const { summary: s, design } = data;
   const first = s.name.split(' ')[0] || 'there';

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import type { ChangeRequest, Summary } from '../../lib/types';
-import { btnPrimary, Card, ErrorBox, PageHeader, PageSkeleton } from '../../components/ui';
+import { btnPrimary, Card, ErrorState, PageHeader, PageSkeleton } from '../../components/ui';
 import { RequestList } from '../../components/RequestList';
 import { DecideButtons } from '../../components/DecideButtons';
 
@@ -21,9 +21,9 @@ export function AdminHome() {
   const signups = useQuery({ queryKey: ['admin', 'signup-requests', 'pending'], queryFn: () => api<{ requests: unknown[] }>('/api/admin/signup-requests?status=pending') });
 
   if (clients.isLoading || pending.isLoading || signups.isLoading) return <PageSkeleton tiles={5} cards={0} />;
-  if (clients.error || !clients.data) return <ErrorBox error={clients.error} />;
-  if (pending.error || !pending.data) return <ErrorBox error={pending.error} />;
-  if (signups.error || !signups.data) return <ErrorBox error={signups.error} />;
+  if (clients.error || !clients.data) return <ErrorState error={clients.error} onRetry={clients.refetch} />;
+  if (pending.error || !pending.data) return <ErrorState error={pending.error} onRetry={pending.refetch} />;
+  if (signups.error || !signups.data) return <ErrorState error={signups.error} onRetry={signups.refetch} />;
 
   const list = clients.data.clients;
   const count = (s: Summary['state']) => list.filter((c) => c.state === s).length;

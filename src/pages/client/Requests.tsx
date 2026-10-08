@@ -3,11 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { PART_LABEL, portalUrl } from '../../lib/format';
 import type { ChangeRequest, Overview, RequestPart } from '../../lib/types';
-import { btnGhost, Button, Card, CardSkeleton, ErrorBox, HeaderSkeleton, inputCls, ListSkeleton, Notice, PageHeader } from '../../components/ui';
+import { btnGhost, Button, Card, CardSkeleton, ErrorBox, ErrorState, HeaderSkeleton, inputCls, ListSkeleton, Notice, PageHeader } from '../../components/ui';
 import { RequestList } from '../../components/RequestList';
+import { useToast } from '../../components/Toast';
+import { errorMessage } from '../../lib/api';
 
 export function Requests() {
   const qc = useQueryClient();
+  const toast = useToast();
   const list = useQuery({ queryKey: ['client', 'requests'], queryFn: () => api<{ requests: ChangeRequest[] }>('/api/client/change-requests') });
   const overview = useQuery({ queryKey: ['client', 'overview'], queryFn: () => api<Overview>('/api/client/overview') });
 
@@ -18,7 +21,9 @@ export function Requests() {
     onSuccess: () => {
       setText('');
       qc.invalidateQueries({ queryKey: ['client'] });
+      toast.success('Request sent. Your Capital Success Manager will confirm by email.');
     },
+    onError: (err) => toast.error(errorMessage(err)),
   });
 
   if (list.isLoading || overview.isLoading) {
@@ -30,7 +35,7 @@ export function Requests() {
       </div>
     );
   }
-  if (list.error || !list.data) return <ErrorBox error={list.error} />;
+  if (list.error || !list.data) return <ErrorState error={list.error} onRetry={list.refetch} />;
 
   const state = overview.data?.summary.state;
   const locked = state === 'submitted';
