@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { PART_LABEL, portalUrl } from '../../lib/format';
 import type { ChangeRequest, Overview, RequestPart } from '../../lib/types';
-import { btnGhost, Button, Card, CardSkeleton, ErrorBox, ErrorState, HeaderSkeleton, inputCls, ListSkeleton, Notice, PageHeader } from '../../components/ui';
+import { btnGhost, Button, Card, CardSkeleton, ErrorBox, ErrorState, inputCls, ListSkeleton, Notice, PageHeader } from '../../components/ui';
 import { RequestList } from '../../components/RequestList';
 import { useToast } from '../../components/Toast';
 import { errorMessage } from '../../lib/api';
@@ -29,7 +29,7 @@ export function Requests() {
   if (list.isLoading || overview.isLoading) {
     return (
       <div role="status" aria-label="Loading">
-        <HeaderSkeleton />
+        <PageHeader title="Change requests" subtitle="Ask for changes after your portal is submitted." />
         <CardSkeleton lines={3} className="mb-6" />
         <ListSkeleton rows={2} />
       </div>

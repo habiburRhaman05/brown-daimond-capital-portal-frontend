@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { portalUrl } from '../../lib/format';
 import type { Details } from '../../lib/types';
-import { btnPrimary, CardSkeleton, ErrorState, HeaderSkeleton, PageHeader } from '../../components/ui';
+import { btnPrimary, CardSkeleton, ErrorState, PageHeader } from '../../components/ui';
 import { FieldGroups } from '../../components/FieldGroups';
 
 export function Information() {
@@ -10,7 +10,7 @@ export function Information() {
   if (isLoading) {
     return (
       <div role="status" aria-label="Loading">
-        <HeaderSkeleton />
+        <PageHeader title="My information" subtitle="Everything you have filled in so far." />
         <div className="grid gap-5 lg:grid-cols-2">{[0, 1, 2, 3].map((i) => <CardSkeleton key={i} lines={5} />)}</div>
       </div>
     );

@@ -2,13 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from '@tanstack/react-query';
 import { clearPortalDraft, clearSession, getSession, subscribe, type Session } from '../lib/session';
 import { api, ApiError } from '../lib/api';
-import type { Me, Role } from '../lib/types';
+import type { Me, MeUser } from '../lib/types';
 
 type AuthState =
   | { status: 'loading' }
   | { status: 'signedOut' }
   | { status: 'blocked'; code: string }
-  | { status: 'ready'; user: { id: string; email: string; role: Role } };
+  | { status: 'ready'; user: MeUser };
 
 interface AuthContextValue {
   state: AuthState;

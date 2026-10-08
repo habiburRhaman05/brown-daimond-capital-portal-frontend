@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { fmtDate, STATE_LABEL } from '../../lib/format';
 import type { PortalState, Summary } from '../../lib/types';
-import { Badge, btnPrimary, Empty, ErrorState, HeaderSkeleton, inputCls, PageHeader, Skeleton, StateBadge, TableSkeleton } from '../../components/ui';
+import { Badge, btnPrimary, Empty, ErrorState, inputCls, PageHeader, Skeleton, StateBadge, TableSkeleton } from '../../components/ui';
 
 const FILTERS: ('all' | PortalState)[] = ['all', 'submitted', 'reopened', 'in_progress', 'not_started'];
 
@@ -46,8 +46,8 @@ export function Clients() {
   if (isLoading) {
     return (
       <div role="status" aria-label="Loading">
-        <HeaderSkeleton />
-        <Skeleton className="mb-4 h-9 w-full sm:w-72" />
+        <PageHeader title="Clients" subtitle="Loading..." />
+        <Skeleton className="mb-5 h-10 w-full sm:w-72" />
         <TableSkeleton />
       </div>
     );

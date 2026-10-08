@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import type { ChangeRequest, Summary } from '../../lib/types';
-import { btnPrimary, Card, ErrorState, PageHeader, PageSkeleton } from '../../components/ui';
+import { btnPrimary, Card, CardSkeleton, ErrorState, PageHeader, Skeleton } from '../../components/ui';
 import { RequestList } from '../../components/RequestList';
 import { DecideButtons } from '../../components/DecideButtons';
 
@@ -20,7 +20,21 @@ export function AdminHome() {
   const pending = useQuery({ queryKey: ['admin', 'requests', 'pending'], queryFn: () => api<{ requests: ChangeRequest[] }>('/api/admin/change-requests?status=pending') });
   const signups = useQuery({ queryKey: ['admin', 'signup-requests', 'pending'], queryFn: () => api<{ requests: unknown[] }>('/api/admin/signup-requests?status=pending') });
 
-  if (clients.isLoading || pending.isLoading || signups.isLoading) return <PageSkeleton tiles={5} cards={0} />;
+  if (clients.isLoading || pending.isLoading || signups.isLoading) {
+    return (
+      <>
+        <PageHeader title="Overview" subtitle="Everything across your clients." />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="rounded-[20px] border border-[#ECE8DE] bg-white p-5 shadow-[0_1px_2px_rgba(20,18,16,0.03),0_10px_28px_-14px_rgba(20,18,16,0.10)]">
+              <Skeleton className="h-8 w-12" /><Skeleton className="mt-3 h-3.5 w-24" />
+            </div>
+          ))}
+        </div>
+        <CardSkeleton className="mt-6" />
+      </>
+    );
+  }
   if (clients.error || !clients.data) return <ErrorState error={clients.error} onRetry={clients.refetch} />;
   if (pending.error || !pending.data) return <ErrorState error={pending.error} onRetry={pending.refetch} />;
   if (signups.error || !signups.data) return <ErrorState error={signups.error} onRetry={signups.refetch} />;

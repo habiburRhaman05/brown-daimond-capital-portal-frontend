@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { fmtDate, fmtDateTime, portalUrl } from '../../lib/format';
 import type { Overview, PortalState } from '../../lib/types';
-import { btnPrimary, ErrorState, HoverCard, Notice, PageHeader, PageSkeleton, ProgressRing, StateBadge } from '../../components/ui';
+import { btnPrimary, CardSkeleton, ErrorState, HoverCard, Notice, PageHeader, ProgressRing, StateBadge } from '../../components/ui';
 
 const CTA: Record<PortalState, string> = {
   not_started: 'Start your portal',
@@ -14,7 +14,20 @@ const CTA: Record<PortalState, string> = {
 
 export function Dashboard() {
   const { data, error, isLoading, refetch } = useQuery({ queryKey: ['client', 'overview'], queryFn: () => api<Overview>('/api/client/overview') });
-  if (isLoading) return <PageSkeleton cards={4} />;
+
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader title="Welcome" subtitle="Loading your dashboard..." />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr]">
+          <CardSkeleton lines={5} />
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+        </div>
+      </>
+    );
+  }
   if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const { summary: s, design } = data;
@@ -26,7 +39,7 @@ export function Dashboard() {
         title={`Hello, ${first}`}
         subtitle={s.businessName ? `Your business: ${s.businessName}` : 'Welcome to your Brown Diamond client portal.'}
         actions={
-          <a className={btnPrimary} href={portalUrl()}>
+          <a className={`${btnPrimary} gap-2`} href={portalUrl()}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             {CTA[s.state]}
           </a>

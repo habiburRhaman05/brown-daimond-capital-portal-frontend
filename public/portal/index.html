@@ -384,7 +384,7 @@
     <div class="wrap">
       <div class="headerRow">
         <div><span class="logo" role="img" aria-label="BD Capital"></span></div>
-        <div class="headerLinks"><a href="#signin" data-nav="signin" class="signout">Sign out</a></div>
+        <div class="headerLinks"></div>
       </div>
       <div class="greeting">Your ownership journey starts here.</div>
     </div>
@@ -435,7 +435,7 @@
     <div class="wrap">
       <div class="headerRow">
         <div><span class="logo" role="img" aria-label="BD Capital"></span></div>
-        <div class="headerLinks"><a href="#overview" data-nav="overview">&larr; Overview</a><a href="#signin" data-nav="signin" class="signout">Sign out</a></div>
+        <div class="headerLinks"><a href="#overview" data-nav="overview">&larr; Overview</a></div>
       </div>
       <div class="pageHead">
         <h1>Your Information</h1>
@@ -548,7 +548,7 @@
     <div class="wrap">
       <div class="headerRow">
         <div><span class="logo" role="img" aria-label="BD Capital"></span></div>
-        <div class="headerLinks"><a href="#overview" data-nav="overview">&larr; Overview</a><a href="#signin" data-nav="signin" class="signout">Sign out</a></div>
+        <div class="headerLinks"><a href="#overview" data-nav="overview">&larr; Overview</a></div>
       </div>
       <div class="pageHead">
         <h1>Your Website</h1>
@@ -5959,15 +5959,7 @@ mount('editorial');
       right.textContent = 'Admin view · read only';
     } else {
       var who = document.createElement('span'); who.textContent = email;
-      var out = document.createElement('button'); out.type = 'button'; out.textContent = 'Sign out';
-      out.style.cssText = 'background:none;border:1px solid #E5E2DD;border-radius:6px;padding:4px 10px;cursor:pointer;font:inherit;color:#1A1816;';
-      out.addEventListener('click', function () {
-        try {
-          [SESSION].concat(DRAFT_KEYS).forEach(function (k) { localStorage.removeItem(k); });
-        } catch (e) {}
-        location.href = B.loginUrl || '/login';
-      });
-      right.appendChild(who); right.appendChild(out);
+      right.appendChild(who);
     }
     bar.appendChild(back); bar.appendChild(right);
     document.body.insertBefore(bar, document.body.firstChild);

@@ -10,6 +10,9 @@ export interface SessionUser {
   id: string;
   email: string;
   role?: Role;
+  fullName?: string;
+  avatarUrl?: string;
+  phone?: string;
 }
 
 export interface Session {

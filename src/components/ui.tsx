@@ -24,7 +24,7 @@ export function Button({
   return (
     <button type={type} disabled={disabled || loading} aria-busy={loading || undefined} className={`${BUTTON_VARIANT[variant]} gap-2 ${className}`} {...rest}>
       {loading && <InlineSpinner />}
-      <span>{loading && loadingText ? loadingText : children}</span>
+      <span className="inline-flex items-center gap-2">{loading && loadingText ? loadingText : children}</span>
     </button>
   );
 }

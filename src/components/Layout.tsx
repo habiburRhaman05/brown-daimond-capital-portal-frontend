@@ -38,13 +38,14 @@ export function Layout() {
   if (state.status !== 'ready') return null;
   const isAdmin = state.user.role === 'admin';
   const nav = isAdmin ? ADMIN_NAV : CLIENT_NAV;
-  const displayName = state.user.email?.split('@')[0] || 'Account';
+  const displayName = state.user.fullName || state.user.email?.split('@')[0] || 'Account';
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || '')
     .join('') || 'A';
+  const avatarUrl = state.user.avatarUrl;
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -87,7 +88,11 @@ export function Layout() {
       </div>
 
       <div className="flex items-center gap-2.5 rounded-[14px] bg-white/6 p-2.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/20 text-xs font-bold text-gold-light">{initials}</div>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+        ) : (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/20 text-xs font-bold text-gold-light">{initials}</div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="truncate text-[12.5px] font-semibold text-white">{displayName}</div>
           <div className="truncate text-[11px] text-white/50">{state.user.email}</div>

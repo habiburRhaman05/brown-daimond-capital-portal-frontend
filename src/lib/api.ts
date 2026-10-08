@@ -92,6 +92,43 @@ export async function api<T = unknown>(
   return payload as T;
 }
 
+export async function apiUpload<T = unknown>(
+  path: string,
+  formData: FormData,
+): Promise<T> {
+  let session = getSession();
+  if (nearExpiry(session)) {
+    await refreshSession();
+    session = getSession();
+  }
+
+  const doFetch = (token?: string) =>
+    fetch(apiUrl(path), {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+  let res = await doFetch(session?.access_token);
+
+  if (res.status === 401 && session?.refresh_token) {
+    if (await refreshSession()) {
+      res = await doFetch(getSession()?.access_token);
+    } else {
+      clearSession();
+    }
+  }
+
+  let payload: { error?: string } & Record<string, unknown> = {};
+  try {
+    payload = await res.json();
+  } catch {
+    /* empty body */
+  }
+  if (!res.ok) throw new ApiError(res.status, payload.error ?? 'REQUEST_FAILED');
+  return payload as T;
+}
+
 const MESSAGES: Record<string, string> = {
   NOT_INVITED: 'This account is not set up yet. Please contact Brown Diamond.',
   EMAIL_NOT_VERIFIED: 'Please verify your email first. Check your inbox for the verification link.',
@@ -114,6 +151,9 @@ const MESSAGES: Record<string, string> = {
   REQUEST_NOT_FOUND: 'Request not found.',
   NUMBER_REQUIRED: 'Please enter a client number.',
   NUMBER_NOT_FOUND: 'Client number not found.',
+  STORAGE_NOT_CONFIGURED: 'Avatar upload is not available right now.',
+  INVALID_FILE_TYPE: 'Only JPEG, PNG, WebP or GIF images are allowed.',
+  FILE_TOO_LARGE: 'Maximum file size is 2 MB.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Wait a few minutes and try again.',
   NAME_REQUIRED: 'Please enter your full name.',
   SIGNUP_FAILED: 'We could not submit your request. Please try again.',

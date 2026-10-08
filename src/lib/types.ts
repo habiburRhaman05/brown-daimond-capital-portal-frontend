@@ -3,8 +3,17 @@ export type PortalState = 'not_started' | 'in_progress' | 'submitted' | 'reopene
 export type RequestStatus = 'pending' | 'resolved';
 export type RequestPart = 'website' | 'team' | 'you' | 'business';
 
+export interface MeUser {
+  id: string;
+  email: string;
+  role: Role;
+  fullName: string;
+  avatarUrl: string;
+  phone: string;
+}
+
 export interface Me {
-  user: { id: string; email: string; role: Role };
+  user: MeUser;
 }
 
 export interface Progress {
