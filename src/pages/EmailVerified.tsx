@@ -12,10 +12,6 @@ function readStatus(): Status {
   return 'verified';
 }
 
-// Single-read: a fresh grant only exists for the one page load right after the backend
-// issued it (see session.ts captureSessionFromUrl). Consuming it here means a refresh of
-// this same page, or anyone opening a saved/forwarded copy of this URL, never sees the
-// "go to my profile" shortcut again — only a real login gets back in.
 function consumeFreshVerify(): boolean {
   try {
     const v = sessionStorage.getItem('bdcap-fresh-verify') === '1';
@@ -77,10 +73,10 @@ export function EmailVerified() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-4">
-      <div className="my-8 w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
+      <div className="my-8 w-full max-w-sm rounded-[28px] border border-[#ECE8DE] bg-white p-6 shadow-[0_1px_2px_rgba(20,18,16,0.04),0_24px_64px_-16px_rgba(20,18,16,0.12)] sm:p-8">
         {status === 'expired' ? <ExpiredIcon /> : <SuccessIcon />}
 
-        <h1 className="mt-5 text-center text-xl font-semibold tracking-tight">{c.title}</h1>
+        <h1 className="mt-5 text-center font-serif text-xl font-semibold tracking-tight">{c.title}</h1>
         <p className="mt-2 text-center text-sm text-muted">{c.subtitle}</p>
 
         <div className="mt-7 space-y-2.5">

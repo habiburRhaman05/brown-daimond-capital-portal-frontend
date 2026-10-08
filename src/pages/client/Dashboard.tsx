@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { fmtDate, fmtDateTime, portalUrl } from '../../lib/format';
 import type { Overview, PortalState } from '../../lib/types';
-import { btnGhost, btnPrimary, Card, ErrorState, Notice, PageHeader, PageSkeleton, ProgressBar, StateBadge } from '../../components/ui';
+import { btnPrimary, ErrorState, HoverCard, Notice, PageHeader, PageSkeleton, ProgressRing, StateBadge } from '../../components/ui';
 
 const CTA: Record<PortalState, string> = {
   not_started: 'Start your portal',
@@ -14,7 +14,7 @@ const CTA: Record<PortalState, string> = {
 
 export function Dashboard() {
   const { data, error, isLoading, refetch } = useQuery({ queryKey: ['client', 'overview'], queryFn: () => api<Overview>('/api/client/overview') });
-  if (isLoading) return <PageSkeleton cards={3} />;
+  if (isLoading) return <PageSkeleton cards={4} />;
   if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const { summary: s, design } = data;
@@ -25,7 +25,12 @@ export function Dashboard() {
       <PageHeader
         title={`Hello, ${first}`}
         subtitle={s.businessName ? `Your business: ${s.businessName}` : 'Welcome to your Brown Diamond client portal.'}
-        actions={<a className={btnPrimary} href={portalUrl()}>{CTA[s.state]}</a>}
+        actions={
+          <a className={btnPrimary} href={portalUrl()}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            {CTA[s.state]}
+          </a>
+        }
       />
 
       <div className="mb-6 space-y-3">
@@ -44,42 +49,63 @@ export function Dashboard() {
         )}
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <Card title="Your portal" action={<StateBadge state={s.state} />}>
-          <div className="space-y-4">
-            <ProgressBar label="Your information" filled={s.progress.information.filled} total={s.progress.information.total} />
-            <ProgressBar label="Your website" filled={s.progress.website.filled} total={s.progress.website.total} />
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link className={btnGhost} to="/dashboard/information">See my information</Link>
-            <a className={btnGhost} href={portalUrl()}>Open portal</a>
-          </div>
-        </Card>
-
-        <Card title="Your website" action={<Link to="/dashboard/website" className="text-sm font-medium text-brand hover:underline">Details</Link>}>
+      {/* Bento grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr]">
+        {/* Website card */}
+        <HoverCard
+          title="Your website"
+          action={
+            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-lg bg-surface">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6F6A60" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+            </span>
+          }
+        >
           {design.template ? (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-4 w-4 rounded-full border border-line" style={{ background: design.paletteHex || '#ccc' }} />
-                <span className="font-medium">{design.templateLabel}</span>
-                <span className="text-muted">· {design.palette} · {design.fonts}</span>
+            <div className="flex flex-col justify-between">
+              <div className="flex items-center gap-4">
+                <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-brand shadow-[0_8px_20px_-8px_rgba(11,46,34,0.5)]">
+                  <span className="inline-block h-4 w-4 rounded-full border-2 border-white/50" style={{ background: design.paletteHex || '#ccc' }} />
+                </span>
+                <div>
+                  <div className="font-serif text-lg font-semibold text-ink">{design.templateLabel} template</div>
+                  <div className="mt-0.5 text-[13px] text-muted">{design.palette} palette &middot; {design.fonts} fonts</div>
+                </div>
               </div>
-              <p className="text-muted">{design.theme}</p>
-              {s.site.previewUrl && <a className="text-brand hover:underline" href={s.site.previewUrl} target="_blank" rel="noreferrer">Preview your site</a>}
-              {s.site.url && <div><a className="text-brand hover:underline" href={s.site.url} target="_blank" rel="noreferrer">Visit your live site</a></div>}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link to="/dashboard/website" className="flex items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline">
+                  Details
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </Link>
+                {s.site.previewUrl && (
+                  <a className="text-[13px] font-semibold text-brand hover:underline" href={s.site.previewUrl} target="_blank" rel="noreferrer">Preview your site</a>
+                )}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted">You have not chosen a design yet. Open your portal to design your website.</p>
           )}
-        </Card>
+        </HoverCard>
 
-        <Card title="Account" className="md:col-span-2">
-          <dl className="grid gap-3 text-sm sm:grid-cols-3">
-            <div><dt className="text-muted">Email</dt><dd>{data.profile.email}</dd></div>
-            <div><dt className="text-muted">Member since</dt><dd>{fmtDate(data.profile.createdAt)}</dd></div>
-            {s.site.clientNumber && <div><dt className="text-muted">Client number</dt><dd>{s.site.clientNumber}</dd></div>}
-          </dl>
-        </Card>
+        {/* Account card */}
+        <HoverCard title="Account">
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between text-[13px]"><span className="text-muted">Email</span><span className="font-medium text-ink">{data.profile.email}</span></div>
+            <div className="flex justify-between text-[13px]"><span className="text-muted">Member since</span><span className="font-medium text-ink">{fmtDate(data.profile.createdAt)}</span></div>
+            {s.site.clientNumber && (
+              <div className="flex justify-between text-[13px]"><span className="text-muted">Client #</span><span className="rounded-md bg-surface px-2 py-0.5 font-medium text-ink">{s.site.clientNumber}</span></div>
+            )}
+            <div className="flex justify-between text-[13px]"><span className="text-muted">Status</span><StateBadge state={s.state} /></div>
+          </div>
+        </HoverCard>
+
+        {/* Progress rings */}
+        <HoverCard>
+          <ProgressRing label="Your information" filled={s.progress.information.filled} total={s.progress.information.total} color="brand" />
+        </HoverCard>
+
+        <HoverCard>
+          <ProgressRing label="Your website" filled={s.progress.website.filled} total={s.progress.website.total} color="gold" />
+        </HoverCard>
       </div>
     </>
   );
