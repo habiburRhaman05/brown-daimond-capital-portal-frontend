@@ -11,7 +11,6 @@ import { DesignCard } from '../../components/DesignCard';
 import { RequestList } from '../../components/RequestList';
 import { DecideButtons } from '../../components/DecideButtons';
 import { DownloadSiteButton } from '../../components/DownloadSiteButton';
-import { EditClient } from './EditClient';
 
 function ClientNumbers({ clientId, numbers }: { clientId: string; numbers: ClientNumber[] }) {
   const qc = useQueryClient();
@@ -81,7 +80,6 @@ export function ClientDetail() {
   const qc = useQueryClient();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('information');
-  const [editing, setEditing] = useState(false);
   const [hours, setHours] = useState(24);
 
   const { data, error, isLoading, refetch } = useQuery({ queryKey: ['admin', 'client', id], queryFn: () => api<Detail>(`/api/admin/clients/${id}`) });
@@ -131,7 +129,6 @@ export function ClientDetail() {
           <>
             <a className={`${btnGhost} !py-1.5 !px-3.5 !text-[13px]`} href={portalUrl(id)}>View portal as client</a>
             <DownloadSiteButton fields={data.fields} sel={data.sel} design={data.design} submittedOn={s.completedOn} className="[&_button]:!py-1.5 [&_button]:!px-3.5 [&_button]:!text-[13px]" />
-            <Button variant="ghost" className="!py-1.5 !px-3.5 !text-[13px]" onClick={() => setEditing(true)}>Edit details</Button>
           </>
         }
       />
@@ -225,7 +222,6 @@ export function ClientDetail() {
           </Card>
         ))}
 
-      {editing && <EditClient id={id} detail={data} onClose={() => setEditing(false)} />}
     </>
   );
 }
