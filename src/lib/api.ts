@@ -152,6 +152,7 @@ const MESSAGES: Record<string, string> = {
   NUMBER_REQUIRED: 'Please enter a client number.',
   NUMBER_NOT_FOUND: 'Client number not found.',
   STORAGE_NOT_CONFIGURED: 'Avatar upload is not available right now.',
+  UPLOAD_FAILED: 'Could not upload the file. Please try again.',
   INVALID_FILE_TYPE: 'Only JPEG, PNG, WebP or GIF images are allowed.',
   FILE_TOO_LARGE: 'Maximum file size is 2 MB.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Wait a few minutes and try again.',
