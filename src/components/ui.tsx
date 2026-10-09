@@ -251,7 +251,7 @@ export function ProgressRing({ label, filled, total, color = 'brand' }: { label:
       <svg width="92" height="92" viewBox="0 0 92 92" className="shrink-0">
         <circle cx="46" cy="46" r={r} fill="none" stroke="#F0EEE6" strokeWidth="9"/>
         <circle cx="46" cy="46" r={r} fill="none" stroke={strokeColor} strokeWidth="9" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset} transform="rotate(-90 46 46)" className="transition-[stroke-dashoffset] duration-700"/>
-        <text x="46" y="51" textAnchor="middle" fontFamily="Inter" fontSize="19" fontWeight="700" fill="#171412">{pct}%</text>
+        <text x="46" y="51" textAnchor="middle" fontFamily="Roboto" fontSize="19" fontWeight="700" fill="#171412">{pct}%</text>
       </svg>
       <div>
         <div className="text-[13px] font-semibold text-ink">{label}</div>

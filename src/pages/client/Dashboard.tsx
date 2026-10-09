@@ -39,8 +39,8 @@ export function Dashboard() {
         title={`Hello, ${first}`}
         subtitle={s.businessName ? `Your business: ${s.businessName}` : 'Welcome to your Brown Diamond client portal.'}
         actions={
-          <a className={`${btnPrimary} gap-2`} href={portalUrl()}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <a className={`${btnPrimary} gap-2 whitespace-nowrap`} href={portalUrl()}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             {CTA[s.state]}
           </a>
         }

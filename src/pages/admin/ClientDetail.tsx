@@ -129,9 +129,9 @@ export function ClientDetail() {
         }
         actions={
           <>
-            <a className={btnGhost} href={portalUrl(id)}>View portal as client</a>
-            <DownloadSiteButton fields={data.fields} sel={data.sel} design={data.design} submittedOn={s.completedOn} />
-            <Button variant="ghost" onClick={() => setEditing(true)}>Edit details</Button>
+            <a className={`${btnGhost} !py-1.5 !px-3.5 !text-[13px]`} href={portalUrl(id)}>View portal as client</a>
+            <DownloadSiteButton fields={data.fields} sel={data.sel} design={data.design} submittedOn={s.completedOn} className="[&_button]:!py-1.5 [&_button]:!px-3.5 [&_button]:!text-[13px]" />
+            <Button variant="ghost" className="!py-1.5 !px-3.5 !text-[13px]" onClick={() => setEditing(true)}>Edit details</Button>
           </>
         }
       />
@@ -202,7 +202,7 @@ export function ClientDetail() {
               <KV label="Live site">{data.site.url && <a className="text-brand hover:underline" href={data.site.url} target="_blank" rel="noreferrer">{data.site.url}</a>}</KV>
               <KV label="Published on">{fmtDate(data.site.deployedOn)}</KV>
             </dl>
-            <div className="mt-4"><a className={btnGhost} href={portalUrl(id)}>See the live preview</a></div>
+            <div className="mt-4"><a className={`${btnGhost} !py-1.5 !px-3.5 !text-[13px]`} href={portalUrl(id)}>See the live preview</a></div>
           </Card>
         </div>
       )}
