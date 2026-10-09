@@ -21,7 +21,7 @@ function updateSessionUser(patch: Record<string, string>) {
 }
 
 export function Account() {
-  const { state } = useAuth();
+  const { state, updateUser } = useAuth();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +80,7 @@ export function Account() {
       fd.append('file', avatarFile);
       const res = await apiUpload<Me>('/api/auth/avatar', fd);
       updateSessionUser({ avatarUrl: res.user.avatarUrl });
+      updateUser({ avatarUrl: res.user.avatarUrl });
       setAvatarPreview(null);
       setAvatarFile(null);
       toast.success('Profile picture updated.');
@@ -95,6 +96,7 @@ export function Account() {
     try {
       await api('/api/auth/avatar', { method: 'DELETE' });
       updateSessionUser({ avatarUrl: '' });
+      updateUser({ avatarUrl: '' });
       setAvatarPreview(null);
       setAvatarFile(null);
       toast.success('Profile picture removed.');
@@ -114,6 +116,7 @@ export function Account() {
         body: { fullName, phone },
       });
       updateSessionUser({ fullName: res.user.fullName, phone: res.user.phone });
+      updateUser({ fullName: res.user.fullName, phone: res.user.phone });
       toast.success('Profile updated.');
     } catch (err) {
       toast.error(errorMessage(err));

@@ -14,6 +14,8 @@ interface AuthContextValue {
   state: AuthState;
   hasSession: boolean;
   signOut: () => Promise<void>;
+  /** Merge fresh profile fields (from a profile/avatar response) into the signed-in user. */
+  updateUser: (patch: Partial<MeUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,12 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(null);
   }, [queryClient]);
 
+  const updateUser = useCallback((patch: Partial<MeUser>) => {
+    setMe((prev) => (prev?.status === 'ready' ? { status: 'ready', user: { ...prev.user, ...patch } } : prev));
+  }, []);
+
   const state: AuthState = useMemo(() => {
     if (!session) return { status: 'signedOut' };
     return me ?? { status: 'loading' };
   }, [session, me]);
 
-  const value = useMemo(() => ({ state, hasSession: !!session, signOut }), [state, session, signOut]);
+  const value = useMemo(() => ({ state, hasSession: !!session, signOut, updateUser }), [state, session, signOut, updateUser]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
