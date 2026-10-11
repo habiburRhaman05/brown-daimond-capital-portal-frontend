@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Api = typeof import('./api');
 type Session = typeof import('./session');
@@ -350,6 +350,70 @@ describe('errorMessage()', () => {
     expect(api.errorMessage(new Error('boom'))).toBe('Something went wrong. Please try again.');
     expect(api.errorMessage(undefined)).toBe('Something went wrong. Please try again.');
     expect(api.errorMessage('string')).toBe('Something went wrong. Please try again.');
+  });
+});
+
+describe('config: the API must be same-site in production (the session cookie cannot cross sites)', () => {
+  const FRONT = 'portal-browndiamondcapital.vercel.app';
+
+  async function loadConfig(apiUrl: string, opts: { prod: boolean; host?: string }) {
+    vi.resetModules();
+    vi.stubEnv('VITE_API_URL', apiUrl);
+    vi.stubEnv('PROD', opts.prod);
+    vi.stubGlobal('location', { hostname: opts.host ?? FRONT, pathname: '/', search: '', hash: '' });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const c = await import('./config');
+    return { c, warn };
+  }
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+  it('ignores a backend on another site in a production build (the exact deployed setup) and warns', async () => {
+    localStorage.setItem('bdcap-api-base', 'https://stale.example.com');
+    const { c, warn } = await loadConfig('https://brown-daimond-capital-backend-46c12ed8.fastapicloud.dev', { prod: true });
+    expect(c.API_BASE).toBe('');
+    expect(c.apiUrl('/api/auth/login')).toBe('/api/auth/login');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('different site'));
+    expect(localStorage.getItem('bdcap-api-base')).toBeNull(); // the portal page then also uses same-origin
+  });
+
+  it('treats two projects on a shared host (vercel.app) as different sites', async () => {
+    const { c } = await loadConfig('https://my-api.vercel.app', { prod: true });
+    expect(c.API_BASE).toBe('');
+  });
+
+  it.each([
+    ['https://api.example.com', 'www.example.com'],
+    ['https://example.com/', 'app.example.com'],
+    ['https://portal-browndiamondcapital.vercel.app', FRONT],
+  ])('keeps %s for an app on %s (same site)', async (api, host) => {
+    const { c, warn } = await loadConfig(api, { prod: true, host });
+    expect(c.API_BASE).toBe(api.replace(/\/+$/, ''));
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('does not get in the way of development (localhost to localhost, any ports)', async () => {
+    const { c } = await loadConfig('http://localhost:8000', { prod: false, host: 'localhost' });
+    expect(c.API_BASE).toBe('http://localhost:8000');
+  });
+
+  it('ignores a value that is not a URL in production', async () => {
+    const { c } = await loadConfig('not a url', { prod: true });
+    expect(c.API_BASE).toBe('');
+  });
+
+  it('with nothing set it is simply same-origin', async () => {
+    const { c } = await loadConfig('', { prod: true });
+    expect(c.API_BASE).toBe('');
+  });
+
+  it('sameSite() understands registrable domains and shared hosting suffixes', async () => {
+    const { c } = await loadConfig('', { prod: true });
+    expect(c.sameSite('api.example.com', 'www.example.com')).toBe(true);
+    expect(c.sameSite('a.example.com', 'b.example.org')).toBe(false);
+    expect(c.sameSite('x.vercel.app', 'y.vercel.app')).toBe(false);
+    expect(c.sameSite('x.vercel.app', 'x.vercel.app')).toBe(true);
+    expect(c.sameSite('a.x.vercel.app', 'b.x.vercel.app')).toBe(true);
+    expect(c.sameSite('x.vercel.app', 'x.fastapicloud.dev')).toBe(false);
   });
 });
 
