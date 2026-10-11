@@ -11,7 +11,10 @@ import { api, ApiError, restoreSession } from '../lib/api';
 import { clearSession, getSession, setSession } from '../lib/session';
 import { Login } from '../pages/Login';
 import { AuthProvider, useAuth } from './AuthProvider';
-import { homeFor, loginFor, Protected, HomeRedirect } from './Guards';
+import { homeFor, loginFor, Protected, HomeRedirect, GuestOnly } from './Guards';
+import { Signup } from '../pages/Signup';
+import { ForgotPassword } from '../pages/ForgotPassword';
+import { SetPassword } from '../pages/SetPassword';
 
 const mockApi = vi.mocked(api);
 const mockRestore = vi.mocked(restoreSession);
@@ -429,5 +432,97 @@ describe('Login', () => {
     expect(email()).toBeRequired();
     expect(pass()).toBeRequired();
     expect(mockApi).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('signed-in visitors on the public auth pages', () => {
+  const routes = (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/client/login" element={<Login variant="client" />} />
+      <Route path="/admin/login" element={<Login variant="admin" />} />
+      <Route path="/client/signup" element={<GuestOnly><Signup /></GuestOnly>} />
+      <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
+      <Route path="/set-password" element={<SetPassword />} />
+      <Route path="/dashboard" element={<div>CLIENT HOME</div>} />
+      <Route path="/admin" element={<div>ADMIN HOME</div>} />
+    </Routes>
+  );
+  const PAGES: [string, string][] = [
+    ['/login', 'Welcome back'],
+    ['/client/login', 'Welcome back'],
+    ['/admin/login', 'Welcome back'],
+    ['/client/signup', 'Create your account'],
+    ['/forgot-password', 'Reset your password'],
+  ];
+  const as = (role: 'admin' | 'client') => {
+    signIn();
+    mockApi.mockImplementation((async (path: string) => (path === '/api/auth/me' ? me(role) : undefined)) as never);
+  };
+
+  describe.each([['client', '/dashboard'], ['admin', '/admin']] as const)('a signed-in %s', (role, home) => {
+    it.each(PAGES)('is sent to their home from %s', async (path) => {
+      as(role);
+      app(routes, path);
+      await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(new RegExp('^' + home + '$')));
+    });
+  });
+
+  it.each(PAGES)('a signed-out visitor still sees %s (%s)', async (path, heading) => {
+    app(routes, path);
+    expect(await screen.findByText(heading)).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent(path);
+  });
+
+  it('a first-time visitor gets the page immediately, without waiting for the session check', () => {
+    mockRestore.mockReturnValue(new Promise(() => {})); // never settles
+    app(routes, '/client/signup');
+    expect(screen.getByText('Create your account')).toBeInTheDocument();
+  });
+
+  it.each(PAGES)('a returning visitor never sees %s flash while the session is restored', async (path, heading) => {
+    localStorage.setItem('bdcap-uid', 'u1'); // there was a session in this browser
+    let finish!: () => void;
+    mockRestore.mockReturnValue(new Promise<void>((res) => { finish = res; }));
+    mockApi.mockImplementation((async (p: string) => (p === '/api/auth/me' ? me('client') : undefined)) as never);
+    app(routes, path);
+    expect(screen.queryByText(heading)).not.toBeInTheDocument(); // spinner only, no form
+    setSession(session());
+    finish();
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/dashboard$/));
+    expect(screen.queryByText(heading)).not.toBeInTheDocument();
+  });
+
+  it('a returning visitor whose cookie has expired gets the page after the check', async () => {
+    localStorage.setItem('bdcap-uid', 'u1');
+    mockRestore.mockImplementation(async () => { localStorage.removeItem('bdcap-uid'); });
+    app(routes, '/forgot-password');
+    expect(await screen.findByText('Reset your password')).toBeInTheDocument();
+  });
+
+  it('an account the server refuses (blocked) can still open sign-up and forgot-password', async () => {
+    signIn();
+    mockApi.mockImplementation((async (path: string) => {
+      if (path === '/api/auth/me') throw new ApiError(403, 'NOT_INVITED');
+      return undefined;
+    }) as never);
+    app(routes, '/client/signup');
+    expect(await screen.findByText('Create your account')).toBeInTheDocument();
+  });
+
+  it('does NOT bounce someone who opens an emailed set-password link while signed in', async () => {
+    as('client');
+    app(routes, '/set-password');
+    expect(await screen.findByPlaceholderText('New password')).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent('/set-password');
+  });
+
+  it('sign-out then lets the person see the login page again', async () => {
+    as('client');
+    app(<>{routes}<Probe /></>, '/dashboard');
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
+    await userEvent.click(screen.getByText('out'));
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('signedOut'));
   });
 });

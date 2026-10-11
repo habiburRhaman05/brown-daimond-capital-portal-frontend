@@ -1,5 +1,5 @@
 import { Link, Route, Routes } from 'react-router-dom';
-import { HomeRedirect, Protected } from './auth/Guards';
+import { GuestOnly, HomeRedirect, Protected } from './auth/Guards';
 import { Layout } from './components/Layout';
 import { AdminLogin, ClientLogin, Login } from './pages/Login';
 import { Signup } from './pages/Signup';
@@ -35,9 +35,9 @@ export default function App() {
       {/* Public auth routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/client/login" element={<ClientLogin />} />
-      <Route path="/client/signup" element={<Signup />} />
+      <Route path="/client/signup" element={<GuestOnly><Signup /></GuestOnly>} />
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/email-verified" element={<EmailVerified />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />

@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { api, ApiError, errorMessage } from '../lib/api';
-import { clearSession, setSession, type Session } from '../lib/session';
+import { clearSession, hasSessionHint, setSession, type Session } from '../lib/session';
 import { useAuth } from '../auth/AuthProvider';
-import { Button, inputCls, Notice } from '../components/ui';
+import { Button, inputCls, Notice, Spinner } from '../components/ui';
 import { homeFor } from '../auth/Guards';
 import { Footer } from '../components/Footer';
 import { COMPANY_NAME, MAILING_ADDRESS } from '../lib/brand';
@@ -111,6 +111,9 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
     return <Navigate to={goTo} replace />;
   }
   if (state.status === 'blocked' && !stuck) return <Navigate to={dest} replace />;
+  // A returning visitor's session is being restored from the cookie: wait instead of flashing the form
+  // at someone who is already signed in (they are redirected as soon as it is known).
+  if (state.status === 'loading' && hasSessionHint() && !busy) return <Spinner full />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
