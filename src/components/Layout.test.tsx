@@ -195,3 +195,86 @@ describe('Layout: mobile', () => {
     expect(screen.getByText('page body')).toBeInTheDocument();
   });
 });
+
+describe('Layout: profile shortcut', () => {
+  const profileLink = (root: HTMLElement) => within(root).getByRole('link', { name: 'Open your profile' });
+
+  it.each([
+    ['client', '/dashboard/account'],
+    ['admin', '/admin/account'],
+  ] as const)('the name and email card opens the profile page for a %s', (role, href) => {
+    mount(user({ role }));
+    const link = profileLink(desktop());
+    expect(link).toHaveAttribute('href', href);
+    expect(link).toHaveTextContent('Ada Lovelace');
+    expect(link).toHaveTextContent('ada@example.com');
+  });
+
+  it('opens the profile when the card is clicked', async () => {
+    mount(user(), '/dashboard');
+    const nav = within(screen.getByRole('navigation', { name: 'Main' }));
+    expect(nav.getByText('Account').closest('a')?.className).not.toMatch(/font-semibold/);
+    await userEvent.click(profileLink(desktop()));
+    expect(nav.getByText('Account').closest('a')?.className).toMatch(/font-semibold/); // now on the Account page
+  });
+
+  it('the avatar opens the profile in the collapsed sidebar too', async () => {
+    localStorage.setItem(KEY, 'collapsed');
+    mount(user({ role: 'admin' }));
+    const link = profileLink(desktop());
+    expect(link).toHaveAttribute('href', '/admin/account');
+    expect(link).toHaveAttribute('title', 'Your profile');
+  });
+
+  it('the profile link is not the sign-out button, and sign-out still works', async () => {
+    mount();
+    const link = profileLink(desktop());
+    const signOutBtn = within(desktop()).getByRole('button', { name: 'Sign out' });
+    expect(link.contains(signOutBtn)).toBe(false);
+    await userEvent.click(signOutBtn);
+    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+  });
+
+  it('works from the mobile menu and closes it after navigating', async () => {
+    mount();
+    await userEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    const mobile = document.querySelectorAll('aside')[1] as HTMLElement;
+    await userEvent.click(profileLink(mobile));
+    await waitFor(() => expect(screen.getAllByRole('navigation', { name: 'Main' })).toHaveLength(1));
+  });
+
+  it('uses the picture in the card when there is one', () => {
+    mount(user({ avatarUrl: 'https://cdn.example/a.png' }));
+    expect(profileLink(desktop()).querySelector('img')).toHaveAttribute('src', 'https://cdn.example/a.png');
+  });
+});
+
+describe('Layout: settings (gear) icon', () => {
+  const accountIconPath = (links: HTMLElement) =>
+    within(links).getByText('Account').closest('a')!.querySelector('svg path')!.getAttribute('d')!;
+
+  it('is a complete, closed outline (it used to be cut off mid-path)', () => {
+    mount();
+    const d = accountIconPath(screen.getByRole('navigation', { name: 'Main' }));
+    expect(d).toMatch(/z$/i);
+    expect(d.length).toBeGreaterThan(500); // the full gear outline, not a fragment
+    expect(d.endsWith('1.1.7')).toBe(false);
+  });
+
+  it('has the centre circle and is the same icon for clients and admins', () => {
+    const { unmount } = mount(user());
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const clientPath = accountIconPath(nav);
+    expect(within(nav).getByText('Account').closest('a')!.querySelector('svg circle')).not.toBeNull();
+    unmount();
+    mount(user({ role: 'admin' }));
+    expect(accountIconPath(screen.getByRole('navigation', { name: 'Main' }))).toBe(clientPath);
+  });
+
+  it('is shown in the collapsed sidebar as well', () => {
+    localStorage.setItem(KEY, 'collapsed');
+    mount();
+    const link = within(desktop()).getByTitle('Account');
+    expect(link.querySelector('svg path')?.getAttribute('d')).toMatch(/z$/i);
+  });
+});

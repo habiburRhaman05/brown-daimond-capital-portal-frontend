@@ -5,12 +5,14 @@ import { Button } from './ui';
 
 const SIDEBAR_KEY = 'bdcap-sidebar';
 
+const SETTINGS_ICON = <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>;
+
 const CLIENT_NAV = [
   { to: '/dashboard', label: 'Dashboard', end: true, icon: <><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></> },
   { to: '/dashboard/information', label: 'My information', icon: <><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></> },
   { to: '/dashboard/website', label: 'My website', icon: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></> },
   { to: '/dashboard/requests', label: 'Change requests', icon: <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/> },
-  { to: '/dashboard/account', label: 'Account', icon: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09c.46.1.86.38 1.1.7"/></> },
+  { to: '/dashboard/account', label: 'Account', icon: SETTINGS_ICON },
 ];
 
 const ADMIN_NAV = [
@@ -18,7 +20,7 @@ const ADMIN_NAV = [
   { to: '/admin/clients', label: 'Clients', icon: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></> },
   { to: '/admin/requests', label: 'Change requests', icon: <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/> },
   { to: '/admin/invites', label: 'Invites', icon: <><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></> },
-  { to: '/admin/account', label: 'Account', icon: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09c.46.1.86.38 1.1.7"/></> },
+  { to: '/admin/account', label: 'Account', icon: SETTINGS_ICON },
 ];
 
 function NavIcon({ children }: { children: React.ReactNode }) {
@@ -53,6 +55,7 @@ export function Layout() {
   if (state.status !== 'ready') return null;
   const isAdmin = state.user.role === 'admin';
   const nav = isAdmin ? ADMIN_NAV : CLIENT_NAV;
+  const profilePath = isAdmin ? '/admin/account' : '/dashboard/account';
   const displayName = state.user.fullName || state.user.email?.split('@')[0] || 'Account';
   const initials = displayName
     .split(/\s+/)
@@ -124,16 +127,23 @@ export function Layout() {
       </div>
 
       {/* Bottom: user card */}
-      <div className="flex items-center gap-2.5 rounded-[14px] bg-white/6 p-2.5">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
-        ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/20 text-xs font-bold text-gold-light">{initials}</div>
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[12.5px] font-semibold text-white">{displayName}</div>
-          <div className="truncate text-[11px] text-white/50">{state.user.email}</div>
-        </div>
+      <div className="flex items-center gap-1 rounded-[14px] bg-white/6 p-1.5">
+        <NavLink
+          to={profilePath}
+          title="Your profile"
+          aria-label="Open your profile"
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-xl p-1 transition-colors hover:bg-white/8"
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/20 text-xs font-bold text-gold-light">{initials}</div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12.5px] font-semibold text-white">{displayName}</div>
+            <div className="truncate text-[11px] text-white/50">{state.user.email}</div>
+          </div>
+        </NavLink>
         <Button
           variant="ghost"
           className="!border-0 !bg-transparent !p-1.5 !shadow-none text-white/50 hover:!bg-white/12 hover:!text-white"
@@ -191,11 +201,13 @@ export function Layout() {
 
       {/* Bottom: avatar + sign out */}
       <div className="flex flex-col items-center gap-2">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
-        ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/20 text-xs font-bold text-gold-light">{initials}</div>
-        )}
+        <NavLink to={profilePath} title="Your profile" aria-label="Open your profile" className="cursor-pointer rounded-xl transition-opacity hover:opacity-80">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl object-cover" />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/20 text-xs font-bold text-gold-light">{initials}</div>
+          )}
+        </NavLink>
         <button
           type="button"
           onClick={handleSignOut}
