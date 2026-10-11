@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { api, errorMessage } from '../lib/api';
+import { api, ApiError, errorMessage } from '../lib/api';
 import { Button, inputCls } from '../components/ui';
 import { AuthCard } from './Login';
 
@@ -13,6 +13,7 @@ export function Signup() {
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [sent, setSent] = useState(false);
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -20,6 +21,7 @@ export function Signup() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setErrorCode('');
     if (password.length < 8) return setError('Use at least 8 characters for your password.');
     if (password !== confirm) return setError('The two passwords do not match.');
     setBusy(true);
@@ -30,7 +32,13 @@ export function Signup() {
       });
       setSent(true);
     } catch (err) {
-      setError(errorMessage(err));
+      // Registered but never verified: the server just sent a fresh link, so send them to the inbox screen.
+      if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
+        setSent(true);
+      } else {
+        setError(errorMessage(err));
+        if (err instanceof ApiError) setErrorCode(err.code);
+      }
     } finally {
       setBusy(false);
     }
@@ -78,7 +86,14 @@ export function Signup() {
         <input className={inputCls} type="email" placeholder="Email address" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className={inputCls} type="password" placeholder="Password (8+ characters)" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
         <input className={inputCls} type="password" placeholder="Repeat password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-        {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-700" role="alert">
+            {error}
+            {errorCode === 'EMAIL_EXISTS' && (
+              <> <Link to="/client/login" className="font-semibold underline">Sign in</Link> or <Link to="/forgot-password" className="font-semibold underline">reset your password</Link>.</>
+            )}
+          </p>
+        )}
         <Button type="submit" className="w-full" loading={busy} loadingText="Creating account…">Create account</Button>
       </form>
       <p className="mt-6 text-center text-sm">

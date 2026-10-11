@@ -12,7 +12,7 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-4">
       <div className="my-8 w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(20,18,16,0.04),0_24px_64px_-16px_rgba(20,18,16,0.12)] sm:p-8">
-        <div className="mx-auto flex h-[52px] w-[52px] items-center justify-center rounded-2xl border border-gold/45 bg-brand text-sm font-bold text-gold-light">BD</div>
+        <img src="/assets/secondary-logo-dark.png" alt="Brown Diamond Capital" className="mx-auto h-9 w-auto" />
         <h1 className="mt-5 text-center font-serif text-2xl font-semibold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-2 text-center text-sm text-muted">{subtitle}</p>}
         <div className="mt-6">{children}</div>
@@ -89,6 +89,7 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [needsVerify, setNeedsVerify] = useState(false);
   const [resending, setResending] = useState(false);
@@ -114,6 +115,7 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setErrorCode('');
     setNeedsVerify(false);
     setResent(false);
     setBusy(true);
@@ -125,7 +127,10 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
       setSession(session);
     } catch (err) {
       setBusy(false);
-      if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') setNeedsVerify(true);
+      if (err instanceof ApiError) {
+        setErrorCode(err.code);
+        if (err.code === 'EMAIL_NOT_VERIFIED') setNeedsVerify(true);
+      }
       setError(errorMessage(err));
       return;
     }
@@ -161,9 +166,8 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
           <div className="pointer-events-none absolute -right-28 -top-28 h-[340px] w-[340px] rounded-full border border-gold/22" />
           <div className="pointer-events-none absolute -right-8 -top-8 h-[200px] w-[200px] rounded-full border border-gold/16" />
 
-          <div className="relative flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[13px] border border-gold/45 bg-gold/18 text-[15px] font-bold tracking-wide text-gold-light">BD</div>
-            <div className="text-[13px] font-semibold uppercase tracking-[2px] text-[#D9D4C6]">{COMPANY_NAME}</div>
+          <div className="relative">
+            <img src="/assets/secondary-logo-light.png" alt={COMPANY_NAME} className="h-9 w-auto" />
           </div>
 
           <div className="relative max-w-[440px]">
@@ -198,9 +202,17 @@ export function Login({ variant = 'client' }: { variant?: Variant } = {}) {
             )}
 
             {error && (
-              <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+              <div role="alert" className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-                <p className="flex-1 text-[13px] leading-relaxed text-red-900">{error}</p>
+                <p className="flex-1 text-[13px] leading-relaxed text-red-900">
+                  {error}
+                  {errorCode === 'ACCOUNT_NOT_FOUND' && variant === 'client' && (
+                    <> <Link to="/client/signup" className="font-semibold underline">Create an account</Link></>
+                  )}
+                  {errorCode === 'INVALID_CREDENTIALS' && (
+                    <> <Link to="/forgot-password" className="font-semibold underline">Reset your password</Link></>
+                  )}
+                </p>
               </div>
             )}
 

@@ -5,11 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { AuthProvider } from './auth/AuthProvider';
 import { ToastProvider } from './components/Toast';
-import { captureSessionFromUrl } from './lib/session';
+import { captureGrantFromUrl } from './lib/session';
 import './index.css';
 
-// Invite/reset links carry the session tokens in the URL fragment; consume them before render.
-captureSessionFromUrl();
+// Verify/invite/reset links carry a one-time grant in the URL fragment; take it out of the address bar
+// before anything renders (the auth provider then trades it for a session).
+captureGrantFromUrl();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true, staleTime: 15_000 } },

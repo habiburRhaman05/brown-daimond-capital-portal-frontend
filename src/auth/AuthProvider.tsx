@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { clearPortalDraft, clearSession, getSession, subscribe, type Session } from '../lib/session';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, restoreSession } from '../lib/api';
 import type { Me, MeUser } from '../lib/types';
 
 type AuthState =
@@ -24,6 +24,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [session, setSessionState] = useState<Session | null>(() => getSession());
   const [me, setMe] = useState<AuthState | null>(null);
+
+  // The access token lives in memory only, so on every page load the session is first restored from the
+  // refresh cookie (or from the one-time grant of an emailed link). Until that settles we cannot say
+  // whether anyone is signed in. StrictMode runs effects twice; the ref keeps the restore to one call.
+  const [restored, setRestored] = useState(false);
+  const restoring = useRef<Promise<void> | null>(null);
+  useEffect(() => {
+    restoring.current ??= restoreSession();
+    let live = true;
+    restoring.current.then(() => live && setRestored(true));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // The session store is the single source of truth; login/sign-out/refresh notify it.
   useEffect(() => {
@@ -72,9 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const state: AuthState = useMemo(() => {
+    if (!restored) return { status: 'loading' };
     if (!session) return { status: 'signedOut' };
     return me ?? { status: 'loading' };
-  }, [session, me]);
+  }, [restored, session, me]);
 
   const value = useMemo(() => ({ state, hasSession: !!session, signOut, updateUser }), [state, session, signOut, updateUser]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

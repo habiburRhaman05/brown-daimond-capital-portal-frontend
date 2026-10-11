@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { btnGhost, btnPrimary } from '../components/ui';
 import { Footer } from '../components/Footer';
@@ -12,11 +12,13 @@ function readStatus(): Status {
   return 'verified';
 }
 
-function consumeFreshVerify(): boolean {
+const FRESH_KEY = 'bdcap-fresh-verify';
+
+// Read the flag without deleting it: React StrictMode runs state initializers twice in development, and a
+// delete here would hide the shortcut on the second run. The effect below spends the flag once per page load.
+function readFreshVerify(): boolean {
   try {
-    const v = sessionStorage.getItem('bdcap-fresh-verify') === '1';
-    sessionStorage.removeItem('bdcap-fresh-verify');
-    return v;
+    return sessionStorage.getItem(FRESH_KEY) === '1';
   } catch {
     return false;
   }
@@ -68,12 +70,16 @@ const COPY: Record<Status, { title: string; subtitle: string }> = {
 export function EmailVerified() {
   const navigate = useNavigate();
   const [status] = useState<Status>(readStatus);
-  const [canGoToProfile] = useState<boolean>(() => status === 'verified' && consumeFreshVerify());
+  const [canGoToProfile] = useState<boolean>(() => status === 'verified' && readFreshVerify());
+  useEffect(() => {
+    try { sessionStorage.removeItem(FRESH_KEY); } catch { /* storage unavailable */ }
+  }, []);
   const c = COPY[status];
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-4">
       <div className="my-8 w-full max-w-sm rounded-[28px] border border-[#ECE8DE] bg-white p-6 shadow-[0_1px_2px_rgba(20,18,16,0.04),0_24px_64px_-16px_rgba(20,18,16,0.12)] sm:p-8">
+        <img src="/assets/secondary-logo-dark.png" alt="Brown Diamond Capital" className="mx-auto mb-6 h-9 w-auto" />
         {status === 'expired' ? <ExpiredIcon /> : <SuccessIcon />}
 
         <h1 className="mt-5 text-center font-serif text-xl font-semibold tracking-tight">{c.title}</h1>

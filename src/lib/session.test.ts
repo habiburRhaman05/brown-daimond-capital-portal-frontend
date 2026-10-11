@@ -3,167 +3,178 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 type SessionModule = typeof import('./session');
 
 const make = (over: Record<string, unknown> = {}) => ({
-  access_token: 'a.b.c',
-  refresh_token: 'r1',
+  access_token: 'secret-access-token',
   expires_at: 2_000_000_000,
   user: { id: 'u1', email: 'a@b.co' },
   ...over,
 });
 
-// session.ts reads localStorage once at import, so each test imports a fresh copy.
+// session.ts keeps module-level state (the in-memory session, a pending grant), so each test imports a fresh copy.
 async function load(): Promise<SessionModule> {
   vi.resetModules();
   return import('./session');
 }
 
-function b64url(obj: unknown) {
-  return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-const jwt = (claims: unknown) => `h.${b64url(claims)}.s`;
+const allStorage = () => JSON.stringify({ ...localStorage, ...sessionStorage });
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
-describe('session store', () => {
-  it('starts empty when nothing is stored', async () => {
+describe('the session lives in memory only', () => {
+  it('starts signed out', async () => {
+    const s = await load();
+    expect(s.getSession()).toBeNull();
+    expect(s.hasSessionHint()).toBe(false);
+  });
+
+  it('never restores a session from storage, even one written by an older build', async () => {
+    localStorage.setItem('bdcap-session-v1', JSON.stringify({ access_token: 'old', refresh_token: 'old-refresh', expires_at: 2_000_000_000, user: { id: 'u' } }));
     const s = await load();
     expect(s.getSession()).toBeNull();
   });
 
-  it('restores a valid stored session on import', async () => {
-    localStorage.setItem('bdcap-session-v1', JSON.stringify(make()));
-    const s = await load();
-    expect(s.getSession()?.user.email).toBe('a@b.co');
+  it('wipes tokens and drafts that older builds left in localStorage', async () => {
+    localStorage.setItem('bdcap-session-v1', '{"refresh_token":"old"}');
+    localStorage.setItem('bdcap-form-v1', '{"fields":{"dateOfBirth":"1990-01-01"}}');
+    localStorage.setItem('bdcap-draft-owner', 'u1');
+    localStorage.setItem('bdcap-sidebar', 'collapsed');
+    await load();
+    expect(localStorage.getItem('bdcap-session-v1')).toBeNull();
+    expect(localStorage.getItem('bdcap-form-v1')).toBeNull();
+    expect(localStorage.getItem('bdcap-draft-owner')).toBeNull();
+    expect(localStorage.getItem('bdcap-sidebar')).toBe('collapsed'); // unrelated preferences stay
   });
 
-  it.each([
-    ['corrupt JSON', '{not json'],
-    ['missing refresh token', JSON.stringify(make({ refresh_token: '' }))],
-    ['missing access token', JSON.stringify(make({ access_token: '' }))],
-    ['JSON null', 'null'],
-  ])('ignores a stored session with %s', async (_label, raw) => {
-    localStorage.setItem('bdcap-session-v1', raw);
+  it('keeps the token out of every storage area', async () => {
     const s = await load();
-    expect(s.getSession()).toBeNull();
+    s.setSession(make({ access_token: 'secret-access-token' }));
+    expect(s.getSession()?.access_token).toBe('secret-access-token');
+    expect(allStorage()).not.toContain('secret-access-token');
+    expect(allStorage()).not.toMatch(/token/i);
   });
 
-  it('setSession persists, updates memory and notifies subscribers', async () => {
+  it('leaves only the non-secret user-id hint behind', async () => {
     const s = await load();
-    const fn = vi.fn();
-    s.subscribe(fn);
     s.setSession(make());
-    expect(fn).toHaveBeenCalledTimes(1);
-    expect(s.getSession()?.access_token).toBe('a.b.c');
-    expect(JSON.parse(localStorage.getItem('bdcap-session-v1')!).refresh_token).toBe('r1');
+    expect(localStorage.getItem('bdcap-uid')).toBe('u1');
+    expect(s.hasSessionHint()).toBe(true);
+    expect(Object.keys(localStorage)).toEqual(['bdcap-uid']);
   });
 
-  it('unsubscribe stops notifications', async () => {
+  it('does not write a hint for a session without a user id', async () => {
+    const s = await load();
+    s.setSession({ access_token: 'a', expires_at: 1 });
+    expect(s.hasSessionHint()).toBe(false);
+  });
+
+  it('notifies subscribers on set and clear, and stops after unsubscribe', async () => {
     const s = await load();
     const fn = vi.fn();
     const off = s.subscribe(fn);
+    s.setSession(make());
+    s.clearSession();
+    expect(fn).toHaveBeenCalledTimes(2);
     off();
     s.setSession(make());
-    expect(fn).not.toHaveBeenCalled();
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 
-  it('clearSession removes storage and notifies', async () => {
+  it('clearSession forgets the session and the hint', async () => {
     const s = await load();
     s.setSession(make());
-    const fn = vi.fn();
-    s.subscribe(fn);
     s.clearSession();
     expect(s.getSession()).toBeNull();
-    expect(localStorage.getItem('bdcap-session-v1')).toBeNull();
-    expect(fn).toHaveBeenCalledTimes(1);
+    expect(s.hasSessionHint()).toBe(false);
+    expect(localStorage.getItem('bdcap-uid')).toBeNull();
   });
 
-  it('still works in memory when localStorage throws (private mode)', async () => {
+  it('still works in memory when storage is blocked (private mode)', async () => {
     const s = await load();
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied'); });
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('denied'); });
     expect(() => s.setSession(make())).not.toThrow();
     expect(s.getSession()).not.toBeNull();
+    expect(s.hasSessionHint()).toBe(false);
     expect(() => s.clearSession()).not.toThrow();
     expect(s.getSession()).toBeNull();
   });
+});
 
-  it('clearPortalDraft removes only the draft keys', async () => {
+describe('clearPortalDraft', () => {
+  it('removes the draft from both storage areas and nothing else', async () => {
     const s = await load();
+    sessionStorage.setItem('bdcap-form-v1', 'x');
+    sessionStorage.setItem('bdcap-draft-owner', 'u1');
     localStorage.setItem('bdcap-form-v1', 'x');
-    localStorage.setItem('bdcap-draft-owner', 'y');
     localStorage.setItem('bdcap-sidebar', 'collapsed');
     s.clearPortalDraft();
+    expect(sessionStorage.getItem('bdcap-form-v1')).toBeNull();
+    expect(sessionStorage.getItem('bdcap-draft-owner')).toBeNull();
     expect(localStorage.getItem('bdcap-form-v1')).toBeNull();
-    expect(localStorage.getItem('bdcap-draft-owner')).toBeNull();
     expect(localStorage.getItem('bdcap-sidebar')).toBe('collapsed');
   });
 });
 
-describe('captureSessionFromUrl', () => {
-  it('returns false when there is no hash', async () => {
+describe('captureGrantFromUrl', () => {
+  it('does nothing without a fragment', async () => {
     const s = await load();
-    expect(s.captureSessionFromUrl()).toBe(false);
-    expect(s.getSession()).toBeNull();
+    s.captureGrantFromUrl();
+    expect(s.takePendingGrant()).toBeNull();
   });
 
-  it('stores the session from the fragment, decodes the JWT user, and scrubs the URL', async () => {
+  it('takes the grant out of the address bar and keeps it for one exchange', async () => {
     const s = await load();
-    const token = jwt({ sub: 'user-9', email: 'z@z.co' });
-    window.history.replaceState(null, '', `/set-password?x=1#access_token=${token}&refresh_token=rt&expires_in=120&type=invite`);
-    expect(s.captureSessionFromUrl()).toBe(true);
-    const got = s.getSession()!;
-    expect(got.user).toEqual({ id: 'user-9', email: 'z@z.co' });
-    expect(got.expires_in).toBe(120);
-    expect(got.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000) + 100);
+    window.history.replaceState(null, '', '/set-password?x=1#grant=one-time-grant&type=invite');
+    s.captureGrantFromUrl();
     expect(window.location.hash).toBe('');
     expect(window.location.search).toBe('?x=1');
+    expect(window.location.pathname).toBe('/set-password');
+    expect(s.takePendingGrant()).toBe('one-time-grant');
+    expect(s.takePendingGrant()).toBeNull(); // single use
+  });
+
+  it('never writes the grant to storage', async () => {
+    const s = await load();
+    window.history.replaceState(null, '', '/set-password#grant=one-time-grant&type=recovery');
+    s.captureGrantFromUrl();
+    expect(allStorage()).not.toContain('one-time-grant');
+  });
+
+  it('flags a fresh email verification exactly for verify links', async () => {
+    const s = await load();
+    window.history.replaceState(null, '', '/email-verified#grant=g&type=verify');
+    s.captureGrantFromUrl();
+    expect(sessionStorage.getItem('bdcap-fresh-verify')).toBe('1');
+    sessionStorage.clear();
+    window.history.replaceState(null, '', '/set-password#grant=g&type=invite');
+    s.captureGrantFromUrl();
     expect(sessionStorage.getItem('bdcap-fresh-verify')).toBeNull();
   });
 
-  it('defaults expires_in to 3600 when missing or not a number', async () => {
+  it('ignores a fragment that carries no grant, including tokens in the old format', async () => {
     const s = await load();
-    window.history.replaceState(null, '', `/#access_token=${jwt({ sub: 'u' })}&refresh_token=rt&expires_in=abc`);
-    s.captureSessionFromUrl();
-    expect(s.getSession()?.expires_in).toBe(3600);
-  });
-
-  it('flags a fresh email verification exactly once', async () => {
-    const s = await load();
-    window.history.replaceState(null, '', `/email-verified#access_token=${jwt({ sub: 'u' })}&refresh_token=rt&type=verify`);
-    s.captureSessionFromUrl();
-    expect(sessionStorage.getItem('bdcap-fresh-verify')).toBe('1');
-  });
-
-  it.each([
-    ['only an access token', '#access_token=abc'],
-    ['only a refresh token', '#refresh_token=abc'],
-    ['unrelated fragment', '#section-2'],
-  ])('rejects %s', async (_l, hash) => {
-    const s = await load();
-    window.history.replaceState(null, '', '/' + hash);
-    expect(s.captureSessionFromUrl()).toBe(false);
+    window.history.replaceState(null, '', '/#access_token=abc&refresh_token=def&expires_in=3600');
+    s.captureGrantFromUrl();
+    expect(s.takePendingGrant()).toBeNull();
     expect(s.getSession()).toBeNull();
+    expect(allStorage()).not.toContain('abc');
   });
 
-  it('redirects to the login page on an error fragment', async () => {
+  it('ignores unrelated fragments such as in-page anchors', async () => {
+    const s = await load();
+    window.history.replaceState(null, '', '/#section-2');
+    s.captureGrantFromUrl();
+    expect(s.takePendingGrant()).toBeNull();
+    expect(window.location.hash).toBe('#section-2');
+  });
+
+  it('sends the user to the login page on an error fragment', async () => {
     const s = await load();
     window.history.replaceState(null, '', '/#error=access_denied&error_code=otp_expired');
-    expect(s.captureSessionFromUrl()).toBe(false);
+    s.captureGrantFromUrl();
     expect(window.location.pathname + window.location.search).toBe('/client/login?verify=expired');
-  });
-
-  it('survives a malformed JWT by using an empty user', async () => {
-    const s = await load();
-    window.history.replaceState(null, '', '/#access_token=not-a-jwt&refresh_token=rt');
-    expect(s.captureSessionFromUrl()).toBe(true);
-    expect(s.getSession()?.user).toEqual({ id: '', email: '' });
-  });
-
-  it('handles non-ASCII names in the JWT payload', async () => {
-    const s = await load();
-    window.history.replaceState(null, '', `/#access_token=${jwt({ sub: 'u', email: 'jose@é.co' })}&refresh_token=rt`);
-    s.captureSessionFromUrl();
-    expect(s.getSession()?.user.email).toBe('jose@é.co');
+    expect(s.takePendingGrant()).toBeNull();
   });
 });

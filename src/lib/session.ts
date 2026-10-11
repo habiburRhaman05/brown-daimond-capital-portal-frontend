@@ -1,9 +1,14 @@
 import type { Role } from './types';
 
-// The browser never talks to Supabase. The backend mints the session at /api/auth/login
-// (and /api/auth/refresh) and this store keeps it. The static portal page
-// (public/portal/index.html) reads the same key, so signing in here signs the portal in too.
-export const SESSION_KEY = 'bdcap-session-v1';
+// Where the session lives:
+//  - the refresh token is an HttpOnly cookie the browser manages; JavaScript can never read it;
+//  - the short-lived access token is kept here, in memory only, and is restored after a reload
+//    from the cookie (see restoreSession in api.ts);
+//  - the only thing written to localStorage is a non-secret hint, the user id, so a visitor who was
+//    never signed in does not trigger a pointless refresh call and the static portal page can tell
+//    whether to bother. It grants nothing.
+export const UID_KEY = 'bdcap-uid';
+const LEGACY_KEYS = ['bdcap-session-v1']; // older builds kept the tokens themselves in localStorage
 const DRAFT_KEYS = ['bdcap-form-v1', 'bdcap-draft-owner'];
 
 export interface SessionUser {
@@ -17,24 +22,23 @@ export interface SessionUser {
 
 export interface Session {
   access_token: string;
-  refresh_token: string;
   expires_at: number; // unix seconds
   expires_in?: number;
-  user: SessionUser;
+  user?: SessionUser;
 }
 
-function read(): Session | null {
+function purgeLegacyStorage() {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw) as Session;
-    return s && s.access_token && s.refresh_token ? s : null;
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+    // The portal page now keeps its draft per tab (sessionStorage); drop copies older builds left behind.
+    DRAFT_KEYS.forEach((k) => localStorage.removeItem(k));
   } catch {
-    return null;
+    /* storage unavailable */
   }
 }
+purgeLegacyStorage();
 
-let current: Session | null = read();
+let current: Session | null = null;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -50,10 +54,18 @@ export function subscribe(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
+export function hasSessionHint(): boolean {
+  try {
+    return !!localStorage.getItem(UID_KEY);
+  } catch {
+    return false;
+  }
+}
+
 export function setSession(session: Session): void {
   current = session;
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (session.user?.id) localStorage.setItem(UID_KEY, session.user.id);
   } catch {
     /* storage unavailable */
   }
@@ -63,60 +75,43 @@ export function setSession(session: Session): void {
 export function clearSession(): void {
   current = null;
   try {
-    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(UID_KEY);
   } catch {
     /* storage unavailable */
   }
+  purgeLegacyStorage();
   emit();
 }
 
 // Drafts the portal page keeps in this browser belong to whoever was signed in.
 export function clearPortalDraft(): void {
   try {
-    DRAFT_KEYS.forEach((k) => localStorage.removeItem(k));
+    DRAFT_KEYS.forEach((k) => {
+      sessionStorage.removeItem(k);
+      localStorage.removeItem(k);
+    });
   } catch {
     /* storage unavailable */
   }
 }
 
-function decodeJwtUser(token: string): SessionUser | null {
-  try {
-    const part = token.split('.')[1];
-    if (!part) return null;
-    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
-    const claims = JSON.parse(decodeURIComponent(escape(json))) as { sub?: string; email?: string };
-    if (!claims.sub && !claims.email) return null;
-    return { id: claims.sub ?? '', email: claims.email ?? '' };
-  } catch {
-    return null;
-  }
-}
+// Verify, invite and password-reset links land with a one-time sign-in grant in the URL fragment.
+// It is taken out of the address bar immediately and traded for a real session (restoreSession).
+let pendingGrant: string | null = null;
 
-// Invite, password-reset and email-verification links all land with the tokens in the URL
-// fragment and are picked up here, once, at app bootstrap.
-export function captureSessionFromUrl(): boolean {
+export function captureGrantFromUrl(): void {
   const raw = window.location.hash.replace(/^#/, '');
-  if (!raw) return false;
+  if (!raw) return;
   const params = new URLSearchParams(raw);
 
   if (params.get('error') || params.get('error_code')) {
     history.replaceState(null, '', '/client/login?verify=expired');
-    return false;
+    return;
   }
 
-  const access = params.get('access_token');
-  const refresh = params.get('refresh_token');
-  if (!access || !refresh) return false;
-
-  const expiresIn = Number(params.get('expires_in')) || 3600;
-  const user = decodeJwtUser(access);
-  setSession({
-    access_token: access,
-    refresh_token: refresh,
-    expires_in: expiresIn,
-    expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-    user: user ?? { id: '', email: '' },
-  });
+  const grant = params.get('grant');
+  if (!grant) return;
+  pendingGrant = grant;
 
   // A fresh email-verification grant is good for this one page load only: EmailVerified
   // reads (and clears) this flag to decide whether to offer the "go to my profile"
@@ -126,7 +121,12 @@ export function captureSessionFromUrl(): boolean {
     try { sessionStorage.setItem('bdcap-fresh-verify', '1'); } catch { /* storage unavailable */ }
   }
 
-  // Drop the tokens from the address bar so a refresh or a screenshot does not leak them.
+  // Drop the grant from the address bar so a refresh, a screenshot or the history never holds it.
   history.replaceState(null, '', window.location.pathname + window.location.search);
-  return true;
+}
+
+export function takePendingGrant(): string | null {
+  const g = pendingGrant;
+  pendingGrant = null;
+  return g;
 }

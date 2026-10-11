@@ -4,12 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../lib/api', async (orig) => ({ ...(await orig<typeof import('../lib/api')>()), api: vi.fn(), apiUpload: vi.fn() }));
+vi.mock('../lib/api', async (orig) => ({ ...(await orig<typeof import('../lib/api')>()), api: vi.fn(), apiUpload: vi.fn(), restoreSession: vi.fn() }));
 
 import { AuthProvider } from '../auth/AuthProvider';
 import { Layout } from '../components/Layout';
 import { ToastProvider } from '../components/Toast';
-import { api, apiUpload } from '../lib/api';
+import { api, apiUpload, restoreSession } from '../lib/api';
 import { clearSession, setSession } from '../lib/session';
 import { Account } from './Account';
 
@@ -46,7 +46,10 @@ const png = () => new File(['x'], 'me.png', { type: 'image/png' });
 
 beforeEach(() => {
   clearSession();
-  setSession({ access_token: 'a', refresh_token: 'r', expires_at: 9_999_999_999, user: { id: 'u1', email: base.email } });
+  // signed in = the refresh cookie brought the session back at startup
+  vi.mocked(restoreSession).mockReset().mockImplementation(async () => {
+    setSession({ access_token: 'a', expires_at: 9_999_999_999, user: { id: 'u1', email: base.email } });
+  });
   vi.mocked(api).mockReset();
   vi.mocked(apiUpload).mockReset();
   serve(base);

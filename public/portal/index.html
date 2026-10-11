@@ -300,20 +300,15 @@
 </style>
 <script>
 /* Injected at the end of <head>, before the portal's own script runs.
-   Runs on the dedicated frontend origin, where the SPA keeps the session in localStorage. */
+   The session itself is an HttpOnly cookie plus an in-memory access token (see the script before </body>);
+   all this gate can see is the non-secret hint the app leaves at sign-in (the user id). */
 (function () {
-  var SESSION = 'bdcap-session-v1';
+  var UID = 'bdcap-uid';
   var STORE = 'bdcap-form-v1';
   var OWNER = 'bdcap-draft-owner';
 
-  function session() {
-    try {
-      var raw = localStorage.getItem(SESSION);
-      if (!raw) return null;
-      var data = JSON.parse(raw);
-      return data && data.access_token ? { key: SESSION, data: data } : null;
-    } catch (e) {}
-    return null;
+  function signedInUid() {
+    try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; }
   }
 
   /* The app may call a backend on another origin (VITE_API_URL) and records that base here, so this
@@ -333,23 +328,21 @@
     backUrl: viewAs ? '/admin/clients/' + encodeURIComponent(viewAs) : '/dashboard'
   };
 
-  var s = session();
-  if (!s || !s.data || !s.data.access_token) {
+  var uid = signedInUid();
+  if (!uid) {
     location.replace('/login?next=' + encodeURIComponent(location.pathname + location.search));
     return;
   }
 
+  /* The form draft holds personal details, so it lives per tab (sessionStorage), never in localStorage,
+     and a draft left by someone else in this tab must never appear for this user. */
   try {
     if (viewAs) {
       /* admin looking at a client: never read or keep a local draft */
-      localStorage.removeItem(STORE);
-    } else {
-      /* a draft left by someone else on this browser must never appear for this user */
-      var uid = s.data.user && s.data.user.id;
-      if (uid && localStorage.getItem(OWNER) !== uid) {
-        localStorage.removeItem(STORE);
-        localStorage.setItem(OWNER, uid);
-      }
+      sessionStorage.removeItem(STORE);
+    } else if (sessionStorage.getItem(OWNER) !== uid) {
+      sessionStorage.removeItem(STORE);
+      sessionStorage.setItem(OWNER, uid);
     }
   } catch (e) {}
 
@@ -5659,7 +5652,7 @@ mount('editorial');
   var changeReqBox = document.getElementById('changeReq'), changeReqBtn = document.getElementById('changeReqBtn');
   var PART_LABEL = {website:'Your website', team:'Your team', you:'About you', business:'About your business'};
   function changeRequests(){ return (sel.changeRequests = sel.changeRequests || []); }
-  function persistChangeRequests(){ try{ var o = JSON.parse(localStorage.getItem(STORE) || '{}'); o.sel = o.sel || {}; o.sel.changeRequests = changeRequests(); localStorage.setItem(STORE, JSON.stringify(o)); }catch(err){} }
+  function persistChangeRequests(){ try{ var o = JSON.parse(sessionStorage.getItem(STORE) || '{}'); o.sel = o.sel || {}; o.sel.changeRequests = changeRequests(); sessionStorage.setItem(STORE, JSON.stringify(o)); }catch(err){} }
   function renderChangeRequests(){ var box = document.getElementById('changeReqList'); if(!box) return; box.innerHTML = '';
     each(changeRequests(), function(r){ var d = document.createElement('div'); d.className = 'changeReqItem'; var w = document.createElement('span'); w.className = 'when'; w.textContent = fmtDate(r.at).toUpperCase() + ' \u00b7 ' + (PART_LABEL[r.part] || r.part).toUpperCase(); var t = document.createElement('div'); t.textContent = r.text; d.appendChild(w); d.appendChild(t); box.appendChild(d); }); }
   function openChangeReq(){ if(!changeReqBox) return; var e = document.getElementById('changeReqError'); if(e) e.style.display = 'none'; changeReqBox.classList.add('on'); var t = document.getElementById('changeReqText'); if(t) t.focus(); }
@@ -5676,7 +5669,7 @@ mount('editorial');
   });
   if(changeReqBox){ changeReqBox.addEventListener('click', function(e){ if(e.target === changeReqBox) closeChangeReq(); }); }
   /* Prototype only: the link lives in the prototype nav bar, which is removed before deployment; with the bar gone this is a no-op. */
-  var protoReset = document.getElementById('protoReset'); if(protoReset){ protoReset.addEventListener('click', function(e){ e.preventDefault(); try{ localStorage.removeItem(STORE); }catch(err){} location.reload(); }); }
+  var protoReset = document.getElementById('protoReset'); if(protoReset){ protoReset.addEventListener('click', function(e){ e.preventDefault(); try{ sessionStorage.removeItem(STORE); }catch(err){} location.reload(); }); }
   var changeReqText = document.getElementById('changeReqText'); if(changeReqText){ changeReqText.addEventListener('input', function(){ var e = document.getElementById('changeReqError'); if(e && changeReqText.value.trim()) e.style.display = 'none'; }); }
   (function(){ var n = document.getElementById('bdcap-state'); var st = null; try{ st = JSON.parse(n ? n.textContent : '{}'); }catch(err){} if(st && (st.lockedOn || st.changesUntil)) applyLockState(st); })();
 
@@ -5685,9 +5678,9 @@ mount('editorial');
   function allFields(){ return document.querySelectorAll('.view input:not([type=hidden]):not([readonly]), .view select, .view textarea'); }
   function fieldKey(el, i){ if(el.dataset && el.dataset.field){ var card = el.closest('.teamCard'); var row = card ? Array.prototype.indexOf.call(document.querySelectorAll('.teamCard'), card) : 0; return el.dataset.field + '_' + (row + 1); } return el.id || ('f' + i); }
   function stampSaved(){ var d = new Date(), t = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); each(document.querySelectorAll('.saveTag'), function(e){ e.textContent = 'SAVED ON THIS DEVICE \u00b7 ' + t; }); }
-  function saveForm(){ if(document.body.classList.contains('locked')) return; try{ var o = {fields:{}, sel:sel}; each(allFields(), function(el, i){ o.fields[fieldKey(el, i)] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value; }); localStorage.setItem(STORE, JSON.stringify(o)); stampSaved(); updateOverviewStatus(); }catch(err){} }
+  function saveForm(){ if(document.body.classList.contains('locked')) return; try{ var o = {fields:{}, sel:sel}; each(allFields(), function(el, i){ o.fields[fieldKey(el, i)] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value; }); sessionStorage.setItem(STORE, JSON.stringify(o)); stampSaved(); updateOverviewStatus(); }catch(err){} }
   function restoreForm(){
-    var o = null; try{ o = JSON.parse(localStorage.getItem(STORE) || 'null'); }catch(err){}
+    var o = null; try{ o = JSON.parse(sessionStorage.getItem(STORE) || 'null'); }catch(err){}
     if(!o) return;
     each(allFields(), function(el, i){ var k = fieldKey(el, i); if(k in o.fields){ if(el.type === 'checkbox' || el.type === 'radio') el.checked = !!o.fields[k]; else el.value = o.fields[k]; } });
     if(o.sel){ var skip = {lockedOn:1,changesUntil:1,completedOn:1,changeRequests:1}; for(var k in o.sel){ if(k !== 'entity' && !skip[k]) sel[k] = o.sel[k]; } }
@@ -5726,62 +5719,46 @@ mount('editorial');
 (function () {
   var B = window.__BDCAP || {};
   var viewAs = B.viewAs;
-  var SESSION = 'bdcap-session-v1';
+  var UID = 'bdcap-uid';
   var STORE = 'bdcap-form-v1';
-  var DRAFT_KEYS = [STORE, 'bdcap-draft-owner'];
 
-  /* signed out: portal-pre.js is already redirecting to the login page, so do nothing else */
+  /* signed out: the head script is already redirecting to the login page, so do nothing else */
   var hasSession = false;
-  try {
-    var rawSession = localStorage.getItem(SESSION);
-    hasSession = !!(rawSession && JSON.parse(rawSession).access_token);
-  } catch (e) {}
+  try { hasSession = !!localStorage.getItem(UID); } catch (e) {}
   if (!hasSession) return;
 
-  /* ── session + authenticated fetch ─────────────────────────── */
-  function sessionEntry() {
-    try {
-      var raw = localStorage.getItem(SESSION);
-      if (!raw) return null;
-      var data = JSON.parse(raw);
-      return data && data.access_token ? { key: SESSION, data: data } : null;
-    } catch (e) {}
-    return null;
-  }
-  /* The backend refused this session: forget it, so the login page cannot see a "valid" session and
+  /* ── session + authenticated fetch ─────────────────────────────
+     The access token lives only in this variable. The refresh token is an HttpOnly cookie this page cannot
+     read; the browser attaches it to /api/auth/refresh (credentials: 'include'), which hands back a fresh
+     access token. Nothing secret is ever written to localStorage or sessionStorage. */
+  var token = '', expiresAt = 0, me = null;
+
+  /* The backend refused the session: forget the hint, so the login page cannot see a "valid" session and
      send the user straight back here (that is the redirect loop), and tell the login page why. */
   function toLogin() {
-    try { localStorage.removeItem(SESSION); } catch (e) {}
+    try { localStorage.removeItem(UID); } catch (e) {}
     location.replace((B.loginUrl || '/login') + '?reason=auth&next=' + encodeURIComponent(location.pathname + location.search));
   }
-  function nearExpiry(d) { return !!(d && d.expires_at && d.expires_at * 1000 - Date.now() < 60000); }
+  function nearExpiry() { return !token || expiresAt * 1000 - Date.now() < 60000; }
   function url(path) { return (B.apiBase || '') + path; }
 
-  /* The portal page is a separate document from the SPA, so nothing else refreshes the token
-     while a client sits editing for an hour. Refresh through the backend. */
+  /* One refresh at a time; this page is a separate document from the app, so nothing else refreshes the
+     token while a client sits editing for an hour. */
   var refreshing = null;
   function refresh() {
     if (refreshing) return refreshing;
-    var s = sessionEntry();
-    if (!s || !s.data.refresh_token) { var none = new Error('no session'); none.auth = true; return Promise.reject(none); }
-    refreshing = fetch(url('/api/auth/refresh'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: s.data.refresh_token })
-    }).then(function (r) {
+    refreshing = fetch(url('/api/auth/refresh'), { method: 'POST', credentials: 'include' })
+      .then(function (r) {
         if (r.ok) return r.json();
         /* only a refusal means the session is dead; a 5xx or a network blip must not sign anyone out */
         var e = new Error('refresh failed');
-        e.auth = r.status === 400 || r.status === 401 || r.status === 403 || r.status === 404 || r.status === 422;
+        e.auth = r.status === 401;
         throw e;
       })
       .then(function (n) {
-        var cur = sessionEntry() || s;
-        cur.data.access_token = n.access_token;
-        cur.data.refresh_token = n.refresh_token;
-        cur.data.expires_at = n.expires_at;
-        cur.data.expires_in = n.expires_in;
-        localStorage.setItem(cur.key, JSON.stringify(cur.data));
+        token = n.access_token;
+        expiresAt = n.expires_at;
+        if (n.user) me = n.user;
       })
       .then(function () { refreshing = null; }, function (e) { refreshing = null; throw e; });
     return refreshing;
@@ -5789,13 +5766,11 @@ mount('editorial');
 
   function api(path, opts, retried) {
     opts = opts || {};
-    var s = sessionEntry();
-    var ready = s && nearExpiry(s.data) ? refresh().catch(function () {}) : Promise.resolve();
+    var ready = nearExpiry() ? refresh().catch(function (e) { if (e && e.auth) toLogin(); }) : Promise.resolve();
     return ready.then(function () {
       var h = { 'Content-Type': 'application/json' };
-      var cur = sessionEntry();
-      if (cur && cur.data.access_token) h.Authorization = 'Bearer ' + cur.data.access_token;
-      return fetch(url(path), Object.assign({}, opts, { headers: h }));
+      if (token) h.Authorization = 'Bearer ' + token;
+      return fetch(url(path), Object.assign({}, opts, { headers: h, credentials: 'include' }));
     }).then(function (res) {
       if (res.status !== 401) return res;
       if (retried) { toLogin(); return res; }
@@ -5808,7 +5783,7 @@ mount('editorial');
 
   function readDraft() {
     try {
-      var o = JSON.parse(localStorage.getItem(STORE) || 'null');
+      var o = JSON.parse(sessionStorage.getItem(STORE) || 'null');
       return o ? { fields: o.fields || {}, sel: o.sel || {} } : null;
     } catch (e) { return null; }
   }
@@ -5947,8 +5922,6 @@ mount('editorial');
 
   /* ── top bar: way back to the dashboard + sign out ── */
   function topBar() {
-    var s = sessionEntry();
-    var email = (s && s.data.user && s.data.user.email) || '';
     var bar = document.createElement('div');
     bar.style.cssText = 'position:sticky;top:0;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 20px;background:#fff;border-bottom:1px solid #E5E2DD;font:13px system-ui,-apple-system,sans-serif;color:#1A1816;';
     var back = document.createElement('a');
@@ -5957,16 +5930,23 @@ mount('editorial');
     back.style.cssText = 'color:#3B6B4A;text-decoration:none;font-weight:600;';
     var right = document.createElement('div');
     right.style.cssText = 'display:flex;align-items:center;gap:12px;color:#8C8478;';
+    var who = null;
     if (viewAs) {
       right.textContent = 'Admin view · read only';
     } else {
-      var who = document.createElement('span'); who.textContent = email;
+      who = document.createElement('span'); who.textContent = (me && me.email) || '';
       right.appendChild(who);
     }
     bar.appendChild(back); bar.appendChild(right);
     document.body.insertBefore(bar, document.body.firstChild);
+    return who;
   }
-  topBar();
+  var whoEl = topBar();
+  /* the signed-in email is only known once the session has been restored from the cookie */
+  refresh().then(
+    function () { if (whoEl && me) whoEl.textContent = me.email || ''; },
+    function (e) { if (e && e.auth) toLogin(); }
+  );
 
   /* ── prefill: the server copy replaces any local draft ── */
   function adminBanner(data) {
@@ -5997,7 +5977,7 @@ mount('editorial');
     if (!data) return;
     var hasData = data.fields && Object.keys(data.fields).length > 0;
     if (hasData) {
-      try { localStorage.setItem(STORE, JSON.stringify({ fields: data.fields, sel: data.sel || {} })); } catch (e) {}
+      try { sessionStorage.setItem(STORE, JSON.stringify({ fields: data.fields, sel: data.sel || {} })); } catch (e) {}
       if (typeof window.restoreForm === 'function') window.restoreForm();
     }
     var d = readDraft();
@@ -6008,7 +5988,7 @@ mount('editorial');
       if (viewAs) {
         window.bdcapApplyState({ completedOn: st.completedOn, lockedOn: st.lockedOn || new Date().toISOString() });
         adminBanner(data);
-        try { localStorage.removeItem(STORE); } catch (e) {}
+        try { sessionStorage.removeItem(STORE); } catch (e) {}
       } else {
         window.bdcapApplyState(st);
       }

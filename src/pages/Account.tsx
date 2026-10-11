@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { api, apiUpload, errorMessage } from '../lib/api';
-import { getSession, setSession, type Session } from '../lib/session';
+import { setSession, type Session } from '../lib/session';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../components/Toast';
 import { Button, Card, inputCls, Notice, PageHeader } from '../components/ui';
@@ -12,12 +12,6 @@ function hashColor(s: string) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-
-function updateSessionUser(patch: Record<string, string>) {
-  const s = getSession();
-  if (!s) return;
-  setSession({ ...s, user: { ...s.user, ...patch } });
 }
 
 export function Account() {
@@ -79,7 +73,6 @@ export function Account() {
       const fd = new FormData();
       fd.append('file', avatarFile);
       const res = await apiUpload<Me>('/api/auth/avatar', fd);
-      updateSessionUser({ avatarUrl: res.user.avatarUrl });
       updateUser({ avatarUrl: res.user.avatarUrl });
       setAvatarPreview(null);
       setAvatarFile(null);
@@ -95,7 +88,6 @@ export function Account() {
     setRemovingAvatar(true);
     try {
       await api('/api/auth/avatar', { method: 'DELETE' });
-      updateSessionUser({ avatarUrl: '' });
       updateUser({ avatarUrl: '' });
       setAvatarPreview(null);
       setAvatarFile(null);
@@ -115,7 +107,6 @@ export function Account() {
         method: 'PUT',
         body: { fullName, phone },
       });
-      updateSessionUser({ fullName: res.user.fullName, phone: res.user.phone });
       updateUser({ fullName: res.user.fullName, phone: res.user.phone });
       toast.success('Profile updated.');
     } catch (err) {

@@ -24,7 +24,7 @@ const me = (over: Partial<MeUser> = {}): MeUser => ({
 
 function setUser(user: MeUser) {
   auth.state = { status: 'ready', user };
-  setSession({ access_token: 'a', refresh_token: 'r', expires_at: 9_999_999_999, user: { id: user.id, email: user.email, fullName: user.fullName, avatarUrl: user.avatarUrl } });
+  setSession({ access_token: 'a', expires_at: 9_999_999_999, user: { id: user.id, email: user.email, fullName: user.fullName, avatarUrl: user.avatarUrl } });
 }
 
 const file = (name: string, type: string, bytes = 10) => new File([new Uint8Array(bytes)], name, { type });
@@ -126,7 +126,6 @@ describe('Account: avatar upload', () => {
     const [path, body] = vi.mocked(apiUpload).mock.calls[0];
     expect(path).toBe('/api/auth/avatar');
     expect((body as FormData).get('file')).toBe(png);
-    expect(getSession()?.user.avatarUrl).toBe('https://signed.example/a.png?sig=1');
     expect(auth.updateUser).toHaveBeenCalledWith({ avatarUrl: 'https://signed.example/a.png?sig=1' });
   });
 
@@ -142,7 +141,6 @@ describe('Account: avatar upload', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Save picture' }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(message));
     expect(screen.getByRole('button', { name: 'Save picture' })).toBeEnabled(); // can retry
-    expect(getSession()?.user.avatarUrl).toBe('');
     expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
@@ -151,7 +149,7 @@ describe('Account: avatar upload', () => {
     const { container } = render(<Account />);
     await userEvent.upload(fileInput(container), file('me.png', 'image/png'));
     await userEvent.click(await screen.findByRole('button', { name: 'Save picture' }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Something went wrong. Please try again.'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not reach the server. Check your connection and try again.'));
   });
 
   it('removes the picture with DELETE and clears it from the session', async () => {
@@ -161,7 +159,6 @@ describe('Account: avatar upload', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Profile picture removed.'));
     expect(api).toHaveBeenCalledWith('/api/auth/avatar', { method: 'DELETE' });
-    expect(getSession()?.user.avatarUrl).toBe('');
     expect(auth.updateUser).toHaveBeenCalledWith({ avatarUrl: '' });
   });
 
@@ -171,7 +168,6 @@ describe('Account: avatar upload', () => {
     render(<Account />);
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
-    expect(getSession()?.user.avatarUrl).toBe('https://cdn.example/a.png');
     expect(auth.updateUser).not.toHaveBeenCalled();
   });
 });
@@ -188,7 +184,6 @@ describe('Account: profile form', () => {
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Profile updated.'));
     expect(api).toHaveBeenCalledWith('/api/auth/profile', { method: 'PUT', body: { fullName: 'Ada B', phone: '555' } });
-    expect(getSession()?.user).toMatchObject({ fullName: 'Ada B', phone: '555' });
     expect(auth.updateUser).toHaveBeenCalledWith({ fullName: 'Ada B', phone: '555' });
   });
 
